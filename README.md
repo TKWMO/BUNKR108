@@ -1,39 +1,50 @@
+# BUNKR108
 
-# BUNKR108 — Local HTML Preview
+This repository contains a single-page interactive web app shipped as `New_Comp_Test.html` and supporting files to serve it as a GitHub Pages site (see `index.html` and the `.github/workflows` workflow).
 
-This README embeds the local HTML file `New_Comp_Test.html` so you can preview the site inside a Markdown viewer that allows raw HTML (for example, VS Code's Markdown Preview).
+## About `New_Comp_Test.html`
 
-If your Markdown viewer supports raw HTML the page will display below.
+`New_Comp_Test.html` is a richly styled, self-contained frontend that provides a portable MCQ (multiple-choice question) quiz experience plus a set of ambient and productivity features. It is designed to run entirely in the browser (static HTML/CSS/JS) and is suitable for local preview or publishing to GitHub Pages.
 
-<iframe src="./New_Comp_Test.html" title="BUNKR108 preview" style="width:100%;height:800px;border:0;">
-  <!-- Fallback content for renderers that don't allow iframes -->
-  Your browser or Markdown viewer doesn't allow embedding. Open the page directly:
-  <a href="./New_Comp_Test.html">Open New_Comp_Test.html</a>
-</iframe>
+Key pieces inside the file:
+- A themeable, mobile-friendly (landscape) MCQ quiz UI with question cards, skip/review controls and saved-question management.
+- Integration points for AI-assisted generation/validation/export (UI panels for file generation and AI preview are present; external API keys are not included in the repo).
+- An ambient "HF Skywave" radio player (select curated streams or custom HTTPS stream URLs).
+- A blocky ASCII clock, boot/loading overlay, sticky notes/rail UI and other small widgets for a polished single-page app feel.
+- Resilient playback handling: playback recovery, alternate stream fallbacks, and Media Session API support for hardware media keys.
 
-Quick ways to open the page in your host/browser or serve it locally:
+## BUNKR108 — Functionality summary
 
-- Open the file directly in the host (from the dev container):
+- Static single-file web app: everything required to run the UI is bundled into `New_Comp_Test.html` with some optional external assets (scripts/styles) loaded when present.
+- Quiz workflow: import or paste MCQs, take quizzes, skip & mark for review, save sets and re-load saved items.
+- AI helpers: panels for generating question content, validating answers, and creating downloadable files (.docx/.pdf) — these require an external AI/key to be functional.
+- Audio player: curated public streams + custom station support; Twilight mode uses a YouTube playlist for audio-only playback.
+- Accessibility & usability: keyboard/media-key controls, responsive layout, reduced-motion support and focus-visible outlines for interactive controls.
 
-  $BROWSER "file://$(pwd)/New_Comp_Test.html"
+## How to view
 
-- Serve a simple static server (recommended when running inside containers):
+- Locally (quick):
 
-  - Python 3 (built-in):
+	python3 -m http.server 8000
 
-    python3 -m http.server 8000
+	Then open: http://localhost:8000/New_Comp_Test.html
 
-    Then open: http://localhost:8000/New_Comp_Test.html
+- In VS Code: open this repository and use the Markdown Preview to see this README; open `New_Comp_Test.html` in the editor and use the Live Server extension or the command above.
+- Published on GitHub Pages: the project includes `index.html` and a workflow that deploys the repository to GitHub Pages on pushes to `main`. The expected site URL is:
 
-  - Node (serve):
+	https://eshaw0322-design.github.io/BUNKR108/
 
-    npx serve .
+	(If the workflow doesn't run, check repository Actions settings and re-run the workflow.)
 
-- VS Code: Use the "Live Server" extension and click "Go Live" with `New_Comp_Test.html` open.
+## Notes & limitations
 
-Notes:
+- Streams and some external services require HTTPS, permissive CORS, and may be blocked by the browser if not configured correctly.
+- AI features are UI-only in the repo; you must supply API keys or backend integration for them to work.
+- The README iframe preview is only supported in editors that allow raw HTML rendering (VS Code). GitHub's README rendering strips iframes.
 
-- Many remote renderers (including GitHub.com) sanitize or block iframes for security. The embedded preview is intended for local use in editors like VS Code that allow raw HTML in Markdown previews.
-- If the iframe doesn't render, use one of the serving/opening methods above.
+If you'd like, I can:
+- Swap the meta-redirect in `index.html` for an embedded iframe preview.
+- Add a short demo GIF or screenshot to the README.
+- Help enable or debug the GitHub Actions Pages deployment logs.
 
-Enjoy the preview!
+Enjoy — open `New_Comp_Test.html` to see the app.
