@@ -1426,16 +1426,17 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 // Keep the clock above radio if the radio size changes (toggle min)
                 const rp = document.getElementById('radioPlayer');
                 function positionClock(){
-                    try{
-                        if(rp){
-                            // Raise radio by clock height so the clock sits underneath
-                            const clkH = clockBox.getBoundingClientRect().height;
-                            // Read gap from CSS variable --rpClockGap (px) on the radio, default to 12
-                            let gap = 12;
-                            try{ const cs = getComputedStyle(rp); const g = cs.getPropertyValue('--rpClockGap'); if(g) gap = parseInt(g)||gap; }catch{}
-                            rp.style.setProperty('--rpRaise', (Math.round(clkH) + gap) + 'px');
-                        }
-                    }catch{}
+                        try{
+                            if(rp){
+                                // Raise radio by clock height so the clock sits underneath
+                                var _clkRect = (window.getRectCached ? window.getRectCached(clockBox) : null);
+                                const clkH = (_clkRect && _clkRect.height) || clockBox.getBoundingClientRect().height;
+                                // Read gap from CSS variable --rpClockGap (px) on the radio, default to 12
+                                let gap = 12;
+                                try{ const cs = getComputedStyle(rp); const g = cs.getPropertyValue('--rpClockGap'); if(g) gap = parseInt(g)||gap; }catch{}
+                                rp.style.setProperty('--rpRaise', (Math.round(clkH) + gap) + 'px');
+                            }
+                        }catch{}
                 }
                 start();
                 positionClock();
@@ -1572,7 +1573,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     try{ wrap.classList.toggle('twilight', t); }catch{}
                     if(skipBtn){ skipBtn.style.display = t ? '' : 'none'; }
                     // When Twilight, shrink the select to its content width to avoid extra blank space
-                    try{
+                        try{
                         const sel = genreSel;
                         if(sel){
                             if(t){
@@ -1580,7 +1581,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                 const opt = sel.options[sel.selectedIndex];
                                 const span = document.createElement('span'); span.style.visibility='hidden'; span.style.position='absolute'; span.style.whiteSpace='nowrap'; span.style.font = getComputedStyle(sel).font; span.textContent = opt ? opt.text : sel.value;
                                 document.body.appendChild(span);
-                                const w = Math.min(150, Math.max(64, Math.ceil(span.getBoundingClientRect().width) + 36));
+                                var _spanRect = (window.getRectCached ? window.getRectCached(span) : null);
+                                const w = Math.min(150, Math.max(64, Math.ceil((_spanRect && _spanRect.width) || span.getBoundingClientRect().width) + 36));
                                 sel.style.width = w + 'px';
                                 document.body.removeChild(span);
                             } else {
@@ -2217,7 +2219,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             probe.style.fontFamily = getComputedStyle(box).fontFamily;
                             probe.textContent = 'X'.repeat(100);
                             box.appendChild(probe);
-                            const chW = Math.max(6, probe.getBoundingClientRect().width / 100);
+                            const _probeRect = (window.getRectCached ? window.getRectCached(probe) : null);
+                            const chW = Math.max(6, ((_probeRect && _probeRect.width) || (probe.getBoundingClientRect && probe.getBoundingClientRect().width)) / 100);
                             box.removeChild(probe);
                             const targetCols = Math.max(24, Math.min(60, Math.floor(maxW / chW) - 2));
                             COLS = targetCols;
@@ -2576,29 +2579,29 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         // Measure natural width (max-content) while unscaled
                         // leave horizontal slack to avoid rounding overflow and shadow bleed
                         var cw = (container.clientWidth || container.offsetWidth || 0) - 10;
-                        var naturalRect = pre.getBoundingClientRect();
-                        var naturalWidth = naturalRect.width || (pre.scrollWidth || 1);
+                        var naturalRect = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
+                        var naturalWidth = (naturalRect && naturalRect.width) || (pre.scrollWidth || 1);
                         var scale = Math.min(1, cw / naturalWidth);
                         // Apply a stronger fudge factor to guarantee fit
                         scale = Math.max(0.1, Math.min(1, scale * 0.975));
                         pre.style.transform = 'scale(' + scale + ')';
-                        var rect = pre.getBoundingClientRect();
+                        var rect = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
                         // Reserve slightly more than measured to avoid clipping bottom row
                         container.style.height = Math.ceil(rect.height + 10) + 'px';
                         // Keep inline-block to preserve measured scrollWidth behavior
                         pre.style.display = 'inline-block';
                         // Safety pass: if rect width still exceeds container width, correct using rect-based ratio
-                        var rw = pre.getBoundingClientRect().width;
+                        var rw = (window.getRectCached ? (window.getRectCached(pre) && window.getRectCached(pre).width) : pre.getBoundingClientRect().width);
                         var cw2 = (container.clientWidth || container.offsetWidth || 0) - 10;
                         if(rw > cw2){
                             var scale2 = Math.max(0.1, scale * (cw2 / rw) * 0.98);
                             pre.style.transform = 'scale(' + scale2 + ')';
-                            var rect2 = pre.getBoundingClientRect();
+                            var rect2 = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
                             container.style.height = Math.ceil(rect2.height + 10) + 'px';
                             scale = scale2; rect = rect2; // use final values
                         }
                         // Final centering: translateX so the scaled rect is centered inside container
-                        var cRect = container.getBoundingClientRect();
+                        var cRect = (window.getRectCached ? window.getRectCached(container) : container.getBoundingClientRect());
                         var desiredLeft = (cRect.width - rect.width) / 2;
                         var currentLeft = rect.left - cRect.left;
                         var dx = desiredLeft - currentLeft;
@@ -2805,7 +2808,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 let h = 0;
                 try{
                     if(newsBar && newsBar.style.display !== 'none'){
-                        const r = newsBar.getBoundingClientRect();
+                        const _r = (window.getRectCached ? window.getRectCached(newsBar) : null);
+                        const r = _r || (newsBar.getBoundingClientRect ? newsBar.getBoundingClientRect() : { height: newsBar.clientHeight || 0 });
                         h = Math.max(0, Math.ceil(r.height));
                     }
                 }catch{}
@@ -3587,10 +3591,10 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     const topicSpan = clone.querySelector('.rainbow');
                     if(topicSpan) topicSpan.style.fontSize = 'inherit';
                     document.body.appendChild(clone);
-                    const naturalW = clone.getBoundingClientRect().width || clone.offsetWidth || clone.scrollWidth || 0;
+                    const naturalW = (window.getRectCached ? (window.getRectCached(clone) && window.getRectCached(clone).width) : clone.getBoundingClientRect().width) || clone.offsetWidth || clone.scrollWidth || 0;
                     document.body.removeChild(clone);
 
-                    const containerW = titleEl.clientWidth || (titleEl.getBoundingClientRect && titleEl.getBoundingClientRect().width) || 400;
+                    const containerW = titleEl.clientWidth || ((window.getRectCached && titleEl.getBoundingClientRect) ? (window.getRectCached(titleEl) && window.getRectCached(titleEl).width) : titleEl.getBoundingClientRect().width) || 400;
                     if(!naturalW || naturalW <= containerW){
                         // Fits at maxPx
                         titleEl.style.fontSize = maxPx + 'px';
@@ -3612,8 +3616,9 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     titleEl.style.fontSize = desired + 'px';
                     if(innerSpan) innerSpan.style.fontSize = 'inherit';
                     for(let i=0;i<12;i++){
-                        const sw = titleEl.scrollWidth || titleEl.getBoundingClientRect().width;
-                        const cw = titleEl.clientWidth || titleEl.getBoundingClientRect().width;
+                        const tRect = (window.getRectCached ? window.getRectCached(titleEl) : null);
+                        const sw = titleEl.scrollWidth || (tRect && tRect.width) || titleEl.clientWidth;
+                        const cw = titleEl.clientWidth || (tRect && tRect.width) || titleEl.clientWidth;
                         if(sw <= cw) break;
                         desired = Math.max(minPx, desired - 1);
                         titleEl.style.fontSize = desired + 'px';
@@ -3825,10 +3830,12 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 trackA.appendChild(makeFrag(items));
                 trackB.appendChild(makeFrag(items));
                 viewport.appendChild(trackA); viewport.appendChild(trackB);
-                // Position B right after A
+                // Position B right after A (use per-frame cached rects to avoid layout thrash)
                 requestAnimationFrame(()=>{
-                    const wA = trackA.getBoundingClientRect().width;
-                    const vw = viewport.getBoundingClientRect().width;
+                    const _rA = (window.getRectCached ? window.getRectCached(trackA) : null);
+                    const wA = (_rA && _rA.width) || (trackA.getBoundingClientRect && trackA.getBoundingClientRect().width) || 0;
+                    const _rv = (window.getRectCached ? window.getRectCached(viewport) : null);
+                    const vw = (_rv && _rv.width) || (viewport.getBoundingClientRect && viewport.getBoundingClientRect().width) || 0;
                     // Fixed speed — do not adapt to content width
                     tickerSpeed = FIXED_NEWS_TICKER_SPEED;
                     console.debug('[news] tickerSpeed(px/s)=', tickerSpeed, 'trackWidth=', Math.round(wA));
@@ -3847,12 +3854,13 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     const dt = Math.max(0, ts - lastTs) / 1000; lastTs = ts;
                     const dx = tickerSpeed * dt; tickerX -= dx;
                     if(trackA && trackB){
-                        const wA = trackA.getBoundingClientRect().width;
-                        const wB = trackB.getBoundingClientRect().width;
+                        const _rA = (window.getRectCached ? window.getRectCached(trackA) : null);
+                        const _rB = (window.getRectCached ? window.getRectCached(trackB) : null);
+                        const wA = (_rA && _rA.width) || (trackA.getBoundingClientRect && trackA.getBoundingClientRect().width) || 0;
                         // wrap when A completely off-screen
-                        if(-tickerX >= wA){ tickerX += wA; }
+                        if(wA && -tickerX >= wA){ tickerX += wA; }
                         const xA = Math.floor(tickerX);
-                        const xB = Math.floor(tickerX + wA);
+                        const xB = Math.floor(tickerX + (wA || 0));
                         trackA.style.transform = `translateX(${xA}px)`;
                         trackB.style.transform = `translateX(${xB}px)`;
                     }
@@ -4020,7 +4028,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 const module = document.querySelector('.api-key-bar') || document.getElementById('setup') || document.querySelector('.card.pad');
                 return { title, pre, module };
             }
-            function measureNaturalWidth(pre){
+                function measureNaturalWidth(pre){
                 // Temporarily take the <pre> out of normal flow to measure its max-content width
                 const prev = {
                     position: pre.style.position,
@@ -4038,7 +4046,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     pre.style.transform = 'none';
                     pre.style.display = 'inline-block';
                     // Use scrollWidth; fallback to bounding rect
-                    return Math.max(pre.scrollWidth || 0, pre.getBoundingClientRect().width || 0) || 1;
+                    const _r = (window.getRectCached ? window.getRectCached(pre) : null);
+                    return Math.max(pre.scrollWidth || 0, (_r && _r.width) || (pre.getBoundingClientRect && pre.getBoundingClientRect().width) || 0) || 1;
                 } finally {
                     pre.style.position = prev.position;
                     pre.style.left = prev.left;
@@ -4053,7 +4062,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     const { title, pre, module } = getEls();
                     if(!title || !pre || !module) return;
                     const inset = 4; // px of breathing room to avoid any overhang
-                    const modRect = module.getBoundingClientRect();
+                    const _modRect = (window.getRectCached ? window.getRectCached(module) : null);
+                    const modRect = _modRect || (module.getBoundingClientRect ? module.getBoundingClientRect() : { width: module.clientWidth || 0 });
                     const targetW = Math.max(0, Math.round(modRect.width) - inset);
                     // Constrain container to target width but allow centering via margin:auto
                     // Use maxWidth instead of fixed width so the container can be horizontally centered.
@@ -4070,15 +4080,15 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     // Apply transform; center horizontally by translating the scaled box
                     pre.style.transform = 'none';
                     // Force a reflow so getBoundingClientRect reflects unscaled position
-                    const preRect0 = pre.getBoundingClientRect();
+                    const preRect0 = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
                     // Apply scale first
                     pre.style.transform = 'scale(' + scale + ')';
-                    const titleRect = title.getBoundingClientRect();
-                    const preRect = pre.getBoundingClientRect();
+                    const titleRect = (window.getRectCached ? window.getRectCached(title) : title.getBoundingClientRect());
+                    const preRect = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
                     // Rely on flexbox for horizontal centering. Just apply scale transform.
                     pre.style.transform = 'scale(' + scale + ')';
                     // Reserve height so layout below doesn't jump; add extra pad to avoid clipping
-                    const finalRect = pre.getBoundingClientRect();
+                    const finalRect = (window.getRectCached ? window.getRectCached(pre) : pre.getBoundingClientRect());
                     // Respect the CSS gap when reserving height: the container's margin-bottom is external.
                     // Add a larger pad (12px) to ensure tall glyphs are not clipped when scaled.
                     title.style.height = Math.ceil(finalRect.height + 12) + 'px';
