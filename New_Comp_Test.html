@@ -1421,8 +1421,18 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     // bob while playing like radio
                     try{ if(isPlaying) clockBox.classList.add('playing'); else clockBox.classList.remove('playing'); }catch{}
                 }
-                function start(){ if(tickId) return; render(); tickId = setInterval(render, 500); }
-                function stop(){ if(tickId){ clearInterval(tickId); tickId=null; } }
+                // clock uses an rAF-driven loop to allow pausing when tab is hidden
+                var _clockRafId = null; var _clockLastTs = 0;
+                function clockLoop(ts){
+                    try{
+                        if(!_clockLastTs) _clockLastTs = ts;
+                        var dt = ts - _clockLastTs;
+                        if(dt >= 500){ render(); _clockLastTs = ts; }
+                    }catch(e){}
+                    if(!document.hidden) _clockRafId = requestAnimationFrame(clockLoop);
+                }
+                function start(){ if(_clockRafId) return; render(); _clockLastTs = 0; _clockRafId = requestAnimationFrame(clockLoop); }
+                function stop(){ if(_clockRafId){ cancelAnimationFrame(_clockRafId); _clockRafId=null; } }
                 // Keep the clock above radio if the radio size changes (toggle min)
                 const rp = document.getElementById('radioPlayer');
                 function positionClock(){
@@ -1615,14 +1625,22 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 let castTimer = null, castDots = 0;
                 function startCastAnim(){
                     stopCastAnim();
+                    // If tab is hidden, defer starting the animation until visible to save CPU
+                    if(document.hidden){
+                        const resumeOnVisible = function(){ try{ document.removeEventListener('visibilitychange', resumeOnVisible); if(wrap && (wrap.classList.contains('playing') || (audio && !audio.paused && !audio.ended))){ startCastAnim(); } }catch(e){} };
+                        document.addEventListener('visibilitychange', resumeOnVisible);
+                        return;
+                    }
                     // set immediately so UI updates without waiting for first interval
                     castDots = 1;
                     cast.textContent = (isTwilight() ? 'Broadcasting' : 'Receiving skywave signals') + ' .';
                     castTimer = setInterval(()=>{
-                        castDots = (castDots + 1) % 4; // 0..3
-                        const dots = castDots===0? '' : castDots===1? ' .' : castDots===2? ' ..' : ' ...';
-                        const base = isTwilight() ? 'Broadcasting' : 'Receiving skywave signals';
-                        cast.textContent = base + dots;
+                        try{
+                            castDots = (castDots + 1) % 4; // 0..3
+                            const dots = castDots===0? '' : castDots===1? ' .' : castDots===2? ' ..' : ' ...';
+                            const base = isTwilight() ? 'Broadcasting' : 'Receiving skywave signals';
+                            cast.textContent = base + dots;
+                        }catch(e){}
                     }, 600);
                 }
                 function stopCastAnim(){ if(castTimer){ clearInterval(castTimer); castTimer=null; } cast.textContent = idleText(); }
@@ -1788,9 +1806,12 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
 
                 // Watchdog: periodically ensure playback is advancing when it should
                 setInterval(()=>{
-                    if(isTwilight() || !_shouldBePlaying()) return;
-                    const stalled = audio.paused || ((Date.now() - _lastProgTs) > 15000 && audio.readyState < 3);
-                    if(stalled) tryResume('watchdog');
+                    try{
+                        if(document.hidden) return; // don't run watchdog while backgrounded
+                        if(isTwilight() || !_shouldBePlaying()) return;
+                        const stalled = audio.paused || ((Date.now() - _lastProgTs) > 15000 && audio.readyState < 3);
+                        if(stalled) tryResume('watchdog');
+                    }catch(e){}
                 }, 4000);
 
                 // Update metadata when stream updates (limited cross-origin)
@@ -1840,8 +1861,17 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             }
                         }catch(e){}
                     }
-                    uiSyncInterval = setInterval(syncUIState, 800);
-                    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(syncUIState, 100); });
+                    // start/stop UI sync in a visibility-aware way
+                    uiSyncInterval = null;
+                    function startUiSync(){ if(uiSyncInterval) return; uiSyncInterval = setInterval(syncUIState, 1200); }
+                    function stopUiSync(){ if(uiSyncInterval){ clearInterval(uiSyncInterval); uiSyncInterval = null; } }
+                    startUiSync();
+                    document.addEventListener('visibilitychange', ()=>{
+                        try{
+                            if(document.visibilityState==='visible'){ setTimeout(syncUIState, 100); startUiSync(); }
+                            else { stopUiSync(); }
+                        }catch(e){}
+                    });
                 }catch(e){}
                 audio.addEventListener('error',   ()=> {
                     if(isTwilight()) return;
@@ -2361,10 +2391,16 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             }
         }
 
-        // Adaptive rAF loop
+        // Adaptive rAF loop (reduced mutation budget, visibility-aware)
         var rafId = null, lastTs = 0, changeAccumulator = 0;
-        var changesPerSecond = 4000; // starting target; will adapt
-        var maxPerFrame = 700;       // cap to avoid spikes
+        var changesPerSecond = (function(){
+            try{
+                if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return 1500;
+                var small = Math.min(window.innerWidth, window.innerHeight) <= 768;
+                return small ? 2000 : 4000;
+            }catch(e){ return 2000; }
+        })();
+        var maxPerFrame = Math.max(200, Math.min(700, Math.floor(changesPerSecond/5)));
 
         function frame(ts){
             if(!lastTs) lastTs = ts;
@@ -2392,9 +2428,10 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             }
             // simple adaptive tuning based on dt
             var targetMs = 16.7;
-            if(dt > targetMs*1.2) { changesPerSecond = Math.max(1000, changesPerSecond * 0.9); }
-            else if(dt < targetMs*0.7) { changesPerSecond = Math.min(12000, changesPerSecond * 1.05); }
-            rafId = requestAnimationFrame(frame);
+            if(dt > targetMs*1.2) { changesPerSecond = Math.max(800, Math.floor(changesPerSecond * 0.92)); }
+            else if(dt < targetMs*0.7) { changesPerSecond = Math.min(12000, Math.floor(changesPerSecond * 1.03)); }
+            // schedule next frame only when page is visible to avoid burning CPU in background
+            if(!document.hidden) rafId = requestAnimationFrame(frame);
         }
 
     function reseedVisuals(){
@@ -2432,6 +2469,15 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             var pref = 'on'; try{ pref = localStorage.getItem('__asciiBg')||'on'; }catch(e){}
             if(pref === 'off'){ setHidden(true); }
             else { start(); }
+            // Pause background animation when tab is hidden to free CPU
+            try{
+                document.addEventListener('visibilitychange', function(){
+                    try{
+                        if(document.hidden){ if(rafId){ cancelAnimationFrame(rafId); rafId = null; } }
+                        else { if(!rafId){ lastTs = 0; changeAccumulator = 0; reseedVisuals(); rafId = requestAnimationFrame(frame); } }
+                    }catch(e){}
+                });
+            }catch(e){}
             // listen for theme changes via click on orbs to update colors
             var orbs = document.querySelectorAll('.theme-capsule .theme-orb');
             orbs.forEach(function(o){ o.addEventListener('click', function(){ updateCanvasColorsFromTheme(); }); });
@@ -7023,7 +7069,7 @@ Version: 1.0
                 try{ document.getElementById('results-card')?.classList.add('hidden'); }catch{}
                 // start timer
                 state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; }
-                state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500);
+                state.timerInterval = setInterval(()=>{ try{ if(document.hidden) return; if(!state.started) return; const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 1000);
                 hideSkipped(); renderCurrent();
             }
 
