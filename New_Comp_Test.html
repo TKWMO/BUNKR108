@@ -24,6 +24,88 @@
             if (!window.normalizedgreek) window.normalizedgreek = window.normalizeGreek;
         } catch (e) { /* noop in restrictive environments */ }
     </script>
+    <!-- Global performance shim: cache layout reads, coalesce rAFs, throttle intervals and pointer moves -->
+    <script>
+    (function(){
+        try{
+            // 1) Cache getBoundingClientRect per RAF frame to avoid repeated layout reads
+            const rectCache = new WeakMap();
+            let __perf_frame = 0;
+            const origGetRect = Element.prototype.getBoundingClientRect;
+            Element.prototype.getBoundingClientRect = function(){
+                try{
+                    const entry = rectCache.get(this);
+                    if(entry && entry.frame === __perf_frame) return entry.rect;
+                    const rect = origGetRect.call(this);
+                    const copy = { x: rect.x, y: rect.y, width: rect.width, height: rect.height, top: rect.top, left: rect.left, right: rect.right, bottom: rect.bottom };
+                    rectCache.set(this, { rect: copy, frame: __perf_frame });
+                    return copy;
+                }catch(e){ return origGetRect.call(this); }
+            };
+
+            // advance frame id each animation frame (also used by cache)
+            const _origRAF = window.requestAnimationFrame.bind(window);
+            // rAF coalescing: queue callbacks and run them in one native rAF to reduce scheduling overhead
+            window.__rAFQueue = [];
+            window.requestAnimationFrame = function(cb){
+                if(typeof cb !== 'function') return _origRAF(cb);
+                window.__rAFQueue.push(cb);
+                if(!window.__rAFScheduled){
+                    window.__rAFScheduled = true;
+                    return _origRAF(function(t){
+                        try{
+                            __perf_frame = (__perf_frame + 1) | 0;
+                            const q = window.__rAFQueue.slice();
+                            window.__rAFQueue.length = 0;
+                            window.__rAFScheduled = false;
+                            for(let i=0;i<q.length;i++){
+                                try{ q[i](t); }catch(e){}
+                            }
+                        }catch(e){}
+                    });
+                }
+                return 0;
+            };
+
+            // 2) Minimum setInterval delay to avoid extremely hot timers (conservative: 200ms)
+            const origSetInterval = window.setInterval.bind(window);
+            window.setInterval = function(cb, ms /*, ...args */){
+                try{
+                    const minMs = 200;
+                    if(typeof ms !== 'number' || ms < minMs) ms = minMs;
+                }catch(e){}
+                return origSetInterval.apply(window, arguments);
+            };
+
+            // 3) Throttle pointer/mouse/touch move handlers added via addEventListener
+            const origAddEv = EventTarget.prototype.addEventListener;
+            EventTarget.prototype.addEventListener = function(type, handler, opts){
+                try{
+                    if((type === 'mousemove' || type === 'pointermove' || type === 'touchmove') && typeof handler === 'function'){
+                        let last = 0;
+                        const min = 50; // 20fps
+                        const wrapped = function(e){
+                            const now = Date.now();
+                            if(now - last >= min){ last = now; return handler.call(this, e); }
+                        };
+                        return origAddEv.call(this, type, wrapped, opts);
+                    }
+                }catch(e){}
+                return origAddEv.call(this, type, handler, opts);
+            };
+
+            // 4) Helper to schedule non-urgent work during idle
+            window.runIdle = function(fn, options){
+                if('requestIdleCallback' in window) return requestIdleCallback(fn, options);
+                return setTimeout(()=>{ try{ fn({ timeRemaining: ()=>0 }); }catch(e){} }, 250);
+            };
+
+            // mark applied
+            window.__perfTweaksApplied = true;
+            console.info('BUNKR108: performance shim applied (rAF coalesce, rect cache, min-interval, pointer throttling)');
+        }catch(e){ console.warn('BUNKR108: perf shim failed', e); }
+    })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <!-- Open Graph / Twitter preview metadata for link sharing -->
     <meta property="og:title" content="BUNKR 108 — AI-powered Study Interface" />
