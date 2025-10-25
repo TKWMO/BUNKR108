@@ -24,92 +24,6 @@
             if (!window.normalizedgreek) window.normalizedgreek = window.normalizeGreek;
         } catch (e) { /* noop in restrictive environments */ }
     </script>
-    <script>
-        // Minimal, safe performance helpers (batched rAF @ ~60fps + per-frame rect cache)
-        // Lightweight and defensive: if something already defines these, don't clobber.
-        (function(){
-            if(window.__perfHelpersInstalled) return; window.__perfHelpersInstalled = true;
-            try{
-                const nativeRaf = window.requestAnimationFrame.bind(window);
-                const nativeCancel = window.cancelAnimationFrame.bind(window);
-                // raf group: schedule callbacks, run at most 60fps even on high-refresh displays.
-                const targetMs = 1000/60;
-                let queued = [];
-                let running = false;
-                let lastRun = 0;
-                let frameCounter = 0;
-                function runner(ts){
-                    // ensure roughly 60fps cap
-                    if(!lastRun) lastRun = ts;
-                    const dt = ts - lastRun;
-                    if(dt < targetMs && queued.length > 0){
-                        nativeRaf(runner);
-                        return;
-                    }
-                    lastRun = ts;
-                    frameCounter++;
-                    // swap queue to avoid reentrancy
-                    const q = queued; queued = [];
-                    // run reads first (callbacks may be mixed; we simply run all)
-                    for(let i=0;i<q.length;i++){
-                        try{ q[i](); }catch(e){ console.warn('rafGroup cb failed', e); }
-                    }
-                    // increment the per-frame id used by getRectCached
-                    window.__perfFrameId = (window.__perfFrameId || 0) + 1;
-                    running = false;
-                }
-                window.__rafGroup = {
-                    schedule(cb){
-                        if(typeof cb !== 'function') return;
-                        queued.push(cb);
-                        if(!running){ running = true; nativeRaf(runner); }
-                    },
-                    nowFrameId(){ return window.__perfFrameId || 0; }
-                };
-
-                // Per-frame getBoundingClientRect cache using WeakMap
-                const rectCache = new WeakMap();
-                window.getRectCached = function(el){
-                    try{
-                        if(!el) return null;
-                        const fid = window.__perfFrameId || 0;
-                        const v = rectCache.get(el);
-                        if(v && v.fid === fid) return v.r;
-                        // read and store
-                        const r = (el.getBoundingClientRect && el.getBoundingClientRect()) || { left:0,top:0,right:0,bottom:0,width:el.offsetWidth||0,height:el.offsetHeight||0 };
-                        rectCache.set(el, { r: r, fid: fid });
-                        return r;
-                    }catch(e){
-                        try{ return el.getBoundingClientRect(); }catch(e2){ return null; }
-                    }
-                };
-
-                // simple low-priority scheduler
-                window.scheduleLowPriority = function(fn, delay){
-                    try{ if(typeof window.requestIdleCallback === 'function'){ requestIdleCallback(fn, { timeout: delay||200 }); } else setTimeout(fn, delay||250); }catch(e){ setTimeout(fn, delay||250); }
-                };
-
-                // small helper to separate reads and writes; reads run now in rafGroup, writes after a short timeout
-                window.readThenWrite = function(readFn, writeFn){
-                    try{
-                        if(typeof readFn === 'function'){
-                            window.__rafGroup.schedule(()=>{
-                                let data;
-                                try{ data = readFn(); }catch(e){}
-                                if(typeof writeFn === 'function'){
-                                    // schedule write on next tick to avoid layout thrash
-                                    setTimeout(()=>{ try{ writeFn(data); }catch(e){} }, 0);
-                                }
-                            });
-                        }
-                    }catch(e){}
-                };
-
-                // clear some global caches on resize
-                window.addEventListener && window.addEventListener('resize', ()=>{ try{ window.__slotRects = null; }catch(e){} });
-            }catch(e){ console.warn('perf helpers init failed', e); }
-        })();
-    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <!-- Open Graph / Twitter preview metadata for link sharing -->
     <meta property="og:title" content="BUNKR 108 — AI-powered Study Interface" />
@@ -2605,22 +2519,6 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 var _bootAnimFrames = ['[   ]','[.  ]','[.. ]','[...]','[.. ]','[.  ]'];
                 function startBootAnim(){ var el=document.getElementById('bootAsciiAnim'); if(!el) return; var i=0; _bootAnimId = setInterval(function(){ el.textContent = _bootAnimFrames[i%_bootAnimFrames.length]; i++; }, 220); }
                 function stopBootAnim(){ try{ if(_bootAnimId) clearInterval(_bootAnimId); _bootAnimId=null; var el=document.getElementById('bootAsciiAnim'); if(el) el.textContent='[   ]'; }catch(e){} }
-                // Override/upgrade the boot animation starter to be visibility-aware and slower.
-                // This is a safe, later-definition that will replace the earlier startBootAnim behavior.
-                function startBootAnim(){
-                    try{
-                        var el=document.getElementById('bootAsciiAnim'); if(!el) return; var i=0;
-                        function step(){ try{ if(document.hidden) return; el.textContent = _bootAnimFrames[i%_bootAnimFrames.length]; i++; }catch(e){} }
-                        try{ if(_bootAnimId) clearInterval(_bootAnimId); }catch(e){}
-                        _bootAnimId = setInterval(step, 420);
-                        try{ if(!document.hidden) step(); }catch(e){}
-                        if(!window.__bootVisHandler){
-                            window.__bootVisHandler = function(){ try{ if(document.hidden){ if(_bootAnimId){ clearInterval(_bootAnimId); _bootAnimId = null; } } else { if(!_bootAnimId) _bootAnimId = setInterval(step, 420); } }catch(e){} };
-                            try{ window.addEventListener && window.addEventListener('visibilitychange', window.__bootVisHandler); }catch(e){}
-                        }
-                    }catch(e){}
-                }
-
                 var phrases = [
     "[BOOT] Don’t tell me what I can’t do… initializing.",
     "[FETCH] We have to go back… requesting previous state.",
@@ -10127,43 +10025,13 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
         head.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dx=e.clientX-start.x, dy=e.clientY-start.y; let L = start.left+dx, T=start.top+dy; const vw=window.innerWidth, vh=window.innerHeight; const M=4; L=Math.max(M, Math.min(vw - el.offsetWidth - M, L)); T=Math.max(M, Math.min(vh - el.offsetHeight - M, T)); el.style.left=L+'px'; el.style.top=T+'px';
             // slot hover highlight under center
             let hovered=-1; const cx=L+el.offsetWidth/2, cy=T+el.offsetHeight/2;
-            try{
-                const slots = getSlots();
-                let rects;
-                if(window.getRectCached){
-                    rects = slots.map(s => window.getRectCached(s));
-                } else {
-                    if(!window.__slotRects || window.__slotRects.length !== slots.length){
-                        window.__slotRects = slots.map(s => (s.getBoundingClientRect ? s.getBoundingClientRect() : { left:0, top:0, right:0, bottom:0 }));
-                    }
-                    rects = window.__slotRects;
-                }
-                for(let i=0;i<rects.length;i++){
-                    const r = rects[i]; if(!r) continue;
-                    if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ hovered = i; break; }
-                }
-            }catch{}
+            try{ getSlots().forEach((s,i)=>{ const r=s.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ hovered=i; } }); }catch{}
             highlightSlot(hovered>=0?hovered:null);
         });
         head.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; head.releasePointerCapture(e.pointerId);
             // snap to slot if released over one
             let target=-1; const cx=el.offsetLeft+el.offsetWidth/2, cy=el.offsetTop+el.offsetHeight/2;
-            try{
-                const slots = getSlots();
-                let rects;
-                if(window.getRectCached){
-                    rects = slots.map(s => window.getRectCached(s));
-                } else {
-                    if(!window.__slotRects || window.__slotRects.length !== slots.length){
-                        window.__slotRects = slots.map(s => (s.getBoundingClientRect ? s.getBoundingClientRect() : { left:0, top:0, right:0, bottom:0 }));
-                    }
-                    rects = window.__slotRects;
-                }
-                for(let i=0;i<rects.length;i++){
-                    const r = rects[i]; if(!r) continue;
-                    if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ target = i; break; }
-                }
-            }catch{}
+            try{ getSlots().forEach((s,i)=>{ const r=s.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ target=i; } }); }catch{}
             highlightSlot(null);
             if(target>=0){ n = updateNote(n.id, { preW: el.offsetWidth, preH: el.offsetHeight, clippedSlot: target }) || n; try{ layoutSlot(target); setOccupiedFlags(); }catch{} }
             else{ updateNote(n.id, { x: el.offsetLeft, y: el.offsetTop }); }
