@@ -536,7 +536,7 @@
          (matches other inline dropdowns that are portaled to document.body). Position is
          computed in JS as viewport coordinates. Keep very high z-index so it appears above
          other UI modules but below global overlays when appropriate. */
-     .saved-menu{ position:fixed; top: 0; left:0; z-index: 2147483647; width: auto; max-width: 96vw; box-sizing: border-box; max-height: 50vh; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
+    .saved-menu{ position:fixed; top: 0; left:0; z-index: 2147483645; width: auto; max-width: 96vw; box-sizing: border-box; max-height: 50vh; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
     .saved-menu.open{ display:block }
     .saved-list{ display:flex; flex-direction:column; gap:8px; padding:8px }
         .saved-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; border-radius:6px; border:1px solid rgba(60,80,120,.35); background: linear-gradient(180deg, rgba(14,20,32,.55), rgba(10,16,28,.55)) }
@@ -734,11 +734,19 @@
         @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + 72px + var(--topSafeArea)); } }
         .theme-orb{
             --c1: #5aa5ff; --c2: #46d3ff; --c3: #7a66ff; /* default fallbacks */
+            --hx: 30%; --hy: 22%; /* specular highlight anchor (moves on hover) */
             width: 40px; height: 40px; border-radius: 50%; cursor: pointer; position: relative; overflow: hidden;
-            box-shadow: inset 0 6px 12px rgba(0,0,0,.45), 0 6px 14px rgba(0,0,0,.35);
+            /* Deeper 3D: strong inner shade + soft outer drop shadow */
+            box-shadow:
+                inset 0 -10px 22px rgba(0,0,0,.55), /* bottom occlusion */
+                inset 0 10px 18px rgba(255,255,255,.06), /* top bounce */
+                0 8px 16px rgba(0,0,0,.40); /* outer drop */
             border: 1px solid rgba(60,80,120,.6);
-            transition: transform .14s ease, box-shadow .12s ease;
-            background: conic-gradient(from 0deg, var(--c1), var(--c2), var(--c3));
+            transition: transform .14s ease, box-shadow .12s ease, filter .12s ease;
+            /* Seamless base (no conic seam): neutral sphere core, colors are painted in ::before */
+            background: radial-gradient(120% 120% at 50% 60%, #0f1726 0%, #0b1424 65%, #09111f 100%);
+            background-clip: padding-box; isolation: isolate;
+            filter: saturate(112%) contrast(105%);
         }
         @media (max-width: 640px){ .theme-orb{ width: 44px; height: 44px; } }
     /* Orb palette classes to avoid inline styles */
@@ -801,27 +809,41 @@
     #contentRoot{ transform-origin: top center; transition: transform .15s ease; }
     /* Saved MCQs card should fill its column — use full width and include padding in box sizing */
     .saved-card{ margin-left:0; margin-right:0; width:100%; box-sizing: border-box; }
-        /* soft blending layer of the tri-colors */
+        /* soft blending of tri-colors plus subtle rim glow */
         .theme-orb::before{
             content:""; position:absolute; inset:-12%; border-radius:50%; pointer-events:none;
             background:
                 radial-gradient(62% 58% at 28% 30%, var(--c1), transparent 70%),
                 radial-gradient(62% 60% at 72% 30%, var(--c2), transparent 72%),
-                radial-gradient(80% 70% at 50% 80%, var(--c3), transparent 74%);
-            filter: blur(8px) saturate(115%);
-            opacity: .75;
+                radial-gradient(80% 70% at 50% 80%, var(--c3), transparent 74%),
+                radial-gradient(120% 98% at 50% 102%, rgba(0,0,0,.35), rgba(0,0,0,0) 60%), /* inner rim shade bottom */
+                radial-gradient(120% 120% at 50% -8%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%); /* top rim glow */
+            filter: blur(12px) saturate(118%);
+            opacity: .92; /* stronger so colors fully blend and cover base */
         }
-        /* specular highlight */
+        /* layered specular highlight + inner ring */
         .theme-orb::after{
             content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none;
-            background: radial-gradient(150% 120% at 30% 20%, rgba(255,255,255,.36), transparent 60%);
+            background:
+                /* bright glint */ radial-gradient(18% 16% at var(--hx) var(--hy), rgba(255,255,255,.66), rgba(255,255,255,.12) 40%, rgba(255,255,255,0) 70%),
+                /* soft highlight */ radial-gradient(120% 100% at calc(var(--hx) + 10%) calc(var(--hy) + 6%), rgba(255,255,255,.18), transparent 62%),
+                /* inner ring to suggest curvature */ radial-gradient(80% 80% at 50% 52%, rgba(255,255,255,.08), rgba(255,255,255,0) 62%),
+                /* ambient occlusion at bottom */ radial-gradient(120% 90% at 50% 110%, rgba(0,0,0,.45), transparent 55%);
         }
         .theme-orb .orb-label{
             position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
             font-weight: 800; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5), 0 0 10px rgba(0,0,0,.45);
             font-size: 14px; letter-spacing: .2px; transform: translateZ(0); transition: transform .14s ease;
         }
-        .theme-orb:hover{ transform: translateY(-1px) scale(1.06); box-shadow: inset 0 6px 12px rgba(0,0,0,.45), 0 10px 20px rgba(0,0,0,.45); }
+        .theme-orb:hover{
+            --hx: 26%; --hy: 18%;
+            transform: translateY(-1px) scale(1.06);
+            box-shadow:
+                inset 0 -12px 24px rgba(0,0,0,.6),
+                inset 0 12px 20px rgba(255,255,255,.08),
+                0 12px 22px rgba(0,0,0,.46);
+            filter: saturate(118%) contrast(108%);
+        }
         .theme-orb:hover .orb-label{ transform: scale(1.08); }
         .theme-orb.active{ outline: 2px solid rgba(255,255,255,.18); outline-offset: 2px; }
 
@@ -1952,6 +1974,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     tog.addEventListener('click', function(){
                         const min = wrap.classList.toggle('min');
                         tog.textContent = min ? 'Show' : 'Hide';
+                        // Persist the collapsed state so user's preference survives reloads
+                        try{ localStorage.setItem('rp.min', min ? '1' : '0'); }catch(e){}
                     });
                 }
 
@@ -2103,7 +2127,26 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         load(getIdx(), 0);
                         try{ if(localStorage.getItem(KEY.playing)==='1'){ play(); } else { cast.textContent=idleText(); stopCastAnim(); } }catch{ cast.textContent=idleText(); stopCastAnim(); }
                     }
+                    // End of init(): fall through to allow outer logic to auto-hide if desired
                 })();
+
+                // Auto-hide the radio player on initial page load unless the user explicitly chose to show it.
+                // Default behavior: hidden (collapsed). If the user toggled Show before, they can persist that by
+                // clicking the toggle which writes 'rp.min' to localStorage.
+                try{
+                    const pref = localStorage.getItem('rp.min');
+                    // If pref === '0' -> show; otherwise (null or '1') -> hide by default
+                    const shouldHide = pref !== '0';
+                    if(shouldHide){
+                        wrap.classList.add('min');
+                        if(tog) tog.textContent = 'Show';
+                        // Stop any playback so the hidden radio doesn't continue audio unexpectedly
+                        try{ pause(); }catch(e){}
+                    } else {
+                        wrap.classList.remove('min');
+                        if(tog) tog.textContent = 'Hide';
+                    }
+                }catch(e){}
 
                 // --- Playback stall detection and auto-recovery (audio-only genres; disabled in Twilight mode) ---
                 // Track last progress to detect stalls
@@ -3114,6 +3157,20 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     .news-controls-vertical{ display:flex; flex-direction:column; gap:8px; align-items:flex-start }
     /* Row that places the Disable news button and the small '+' toggle side-by-side */
     .news-toggle-row{ display:flex; gap:8px; align-items:center }
+    /* Per-question TTS button: hide visually until card hover or keyboard focus */
+    .qcard .tts-btn{
+        opacity: 0;
+        transform: translateY(-2px);
+        transition: opacity .16s ease, transform .12s ease;
+        /* Keep the button interactive for keyboard users even when visually hidden */
+        pointer-events: auto;
+        color: inherit;
+    }
+    .qcard:hover .tts-btn,
+    .qcard:focus-within .tts-btn{
+        opacity: 1;
+        transform: translateY(0);
+    }
     </style>
     <script>
     (function(){
@@ -3318,15 +3375,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         will-change: filter, color, background-color, opacity;
     }
 
-    /* Keep saved-menu above overlay (no inversion) but allow inline dropdown to be inverted
-       by the overlay by not overriding its filter. */
-    body.light-mode-active .saved-menu,
-    body.light-mode-active .saved-list,
-    body.light-mode-active .saved-list .saved-item,
-    body.light-mode-active .saved-card .saved-menu {
-        -webkit-filter: none !important;
-        filter: none !important;
-    }
+     /* Ensure Saved MCQs dropdown inherits inversion like the rest of the UI.
+         No special filter overrides here; it's rendered below the overlay. */
 
     /* Small visual for toggled state */
     #enableLightModeBtn[aria-pressed="true"]{ box-shadow: 0 6px 18px rgba(0,0,0,0.16); transform: translateY(-1px); }
@@ -5095,6 +5145,63 @@ ANSWER KEY
     .btn.pill { transform: none; }
     .api-key-dot.missing{ background:#ff6b6b; box-shadow:0 0 8px rgba(255,107,107,0.5); }
     .api-key-dot.present{ background:#4dd17a; box-shadow:0 0 10px rgba(77,209,122,0.5); }
+    </style>
+
+    <style>
+    /* Persist green/red outlines for choice rows even when the inverted/light overlay is active.
+       Approach: render a pseudo-element (::after) that draws the colored outline and subtle overlay
+       in front of the choice. When the global inverted overlay is active, double-invert only this
+       pseudo-element so the outline keeps its native green/red hues while the card background
+       remains subject to the inversion overlay (keeps the question background dark as requested).
+    */
+    .choice{ position: relative; overflow: visible; }
+
+    .choice.correct::after,
+    .choice.wrong::after{
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 10px; /* match .choice rounding */
+        transition: -webkit-filter .36s ease, filter .36s ease, box-shadow .18s ease, background-color .18s ease;
+        will-change: box-shadow, filter, background-color;
+        z-index: 1; /* place above the choice content but below any interactive markers */
+    }
+
+    /* Outer glow + subtle tinted overlay (very low opacity so underlying card stays readable) */
+    .choice.correct::after{
+        box-shadow: 0 0 0 6px rgba(77,209,122,0.12);
+        background: linear-gradient(180deg, rgba(77,209,122,0.04), rgba(77,209,122,0.02));
+    }
+    .choice.wrong::after{
+        box-shadow: 0 0 0 6px rgba(255,107,107,0.12);
+        background: linear-gradient(180deg, rgba(255,107,107,0.04), rgba(255,107,107,0.02));
+    }
+
+    /* When the global light-mode overlay is active, lift the choice element and its
+       colored pseudo-element above the overlay so the green/red tint renders normally
+       on top of the (inverted) question background. We use the same z-index level as
+       other preserved-palette elements elsewhere on the page. This preserves the
+       dark inverted card background while making the outline/overlay green or red.
+    */
+    body.light-mode-active .choice.correct,
+    body.light-mode-active .choice.wrong{
+        position: relative;
+        z-index: 2147483647; /* above #lightModeOverlay (2147483646) */
+        /* ensure no filter is applied to the element itself */
+        -webkit-filter: none !important;
+        filter: none !important;
+    }
+
+    body.light-mode-active .choice.correct::after,
+    body.light-mode-active .choice.wrong::after{
+        z-index: 2147483648; /* sit above the choice container */
+        -webkit-filter: none !important;
+        filter: none !important;
+    }
+
+    /* Keep the inner tag/label content above the pseudo-element so text/icons remain readable */
+    .choice > * { position: relative; z-index: 2147483649; }
     </style>
 
 
@@ -8499,8 +8606,11 @@ Version: 1.0
                     const cb = document.getElementById('globalGemEnable');
                     if(!cb) return;
                     // Save the previous checked state so it can be restored after the quiz if needed.
-                    // Do NOT modify the checkbox during the quiz — leave it in whatever state the user set.
                     window.__prevGemEnabled = !!cb.checked;
+                    // Immediately turn OFF the global Gemini enable when a quiz starts so accidental
+                    // per-question requests won't fire. Do NOT permanently disable the control;
+                    // leave it enabled so the user may re-enable it at any time during the quiz.
+                    try{ cb.checked = false; cb.dispatchEvent(new Event('change')); }catch(e){}
                 }catch(e){}
             }
             function restoreGeminiStateAfterQuiz(){
@@ -9391,12 +9501,29 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                     const k = (e.key || '').toLowerCase();
                     // If the summary screen is showing review/restart buttons, map Enter/N -> Review Missed and R -> Restart
                     try{
+                        const backSetupBtn = document.getElementById('backSetup');
+                        // If the Back to Setup button is visible on the Finished/Summary screen,
+                        // pressing Enter should return to the main menu — but only when the
+                        // Review Missed button is not active (either hidden or disabled).
+                        if(backSetupBtn && backSetupBtn.offsetParent !== null){
+                            const reviewBtnCheck = document.getElementById('reviewMissed');
+                            const reviewVisible = !!(reviewBtnCheck && reviewBtnCheck.offsetParent !== null);
+                            const reviewEnabled = !!(reviewBtnCheck && !reviewBtnCheck.disabled);
+                            const reviewActive = reviewVisible && reviewEnabled;
+                            if(!reviewActive && k === 'enter'){
+                                try{ backSetupBtn.click(); e.preventDefault(); }catch(e){}
+                                return;
+                            }
+                            // If review is active, do not consume Enter here; allow downstream handlers
+                            // (review/restart logic) to handle it.
+                        }
+
                         const reviewBtn = document.getElementById('reviewMissed');
                         const restartBtn = document.getElementById('restart');
-                        // offsetParent !== null is a quick visible check (not rendered => null)
-                        if(reviewBtn && reviewBtn.offsetParent !== null){
+                        // Handle review controls only when Review Missed is visible AND enabled
+                        if(reviewBtn && reviewBtn.offsetParent !== null && !reviewBtn.disabled){
                             if(k === 'enter' || k === 'n'){
-                                if(!reviewBtn.disabled){ try{ reviewBtn.click(); e.preventDefault(); }catch(e){} }
+                                try{ reviewBtn.click(); e.preventDefault(); }catch(e){}
                                 return;
                             }
                             if(k === 'r'){
@@ -9661,6 +9788,16 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                             // let the click focus the editable title
                             return;
                         }
+                        // Move the clicked item to the front (most-recently-used)
+                        try{
+                            // remove the item at index i and unshift it to front
+                            arr.splice(i, 1);
+                            arr.unshift(item);
+                            saveAll(arr);
+                            // re-render on next tick to avoid re-entrancy while iterating
+                            setTimeout(render, 0);
+                        }catch(e){ console.warn('Could not bump saved item to front', e); }
+
                         // perform load/paste
                         if(pasteEl){ pasteEl.value = item.text||''; try{ document.getElementById('parseBtn')?.click(); }catch{} }
                         try{ window.scrollTo({ top: document.getElementById('setup').offsetTop, behavior: 'smooth' }); }catch(e){}
@@ -10308,7 +10445,7 @@ ${original}`;
                 // Ensure SDK
                 if(!window.GoogleGenerativeAI){ try{ const mod = await import('https://esm.run/@google/generative-ai'); window.GoogleGenerativeAI = mod.GoogleGenerativeAI; }catch(e){ alert('Could not load Gemini SDK.'); return; } }
     // Show immediate feedback that click is captured
-    try{ const s = document.getElementById('resultsAiStatus'); if(s) s.textContent = 'Preparing analysis…'; try{ if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { const o = document.getElementById('resultsAiOutput'); if(o) o.textContent = ''; } }catch{} }catch{}
+    try{ const s = document.getElementById('resultsAiStatus'); if(s) s.textContent = 'Preparing analysis…'; try{ if(typeof window.stopAiOutputSoft === 'function'){ window.stopAiOutputSoft(); } else if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { const o = document.getElementById('resultsAiOutput'); if(o) o.textContent = ''; } }catch{} }catch{}
                 // Helper: resolve selected attempt id reliably (prefer dropdown, then button dataset)
                 function getSelectedAttemptId(){
                     try{
@@ -10378,7 +10515,7 @@ ${original}`;
                     else {
                         try{ const sel = document.getElementById('attemptSelect'); if(sel && sel.value){ status.textContent = `No missed questions in the selected attempt to analyze.`; } else { status.textContent = 'No missed questions across attempts to analyze.'; } }catch{ status.textContent = 'No missed questions to analyze.'; }
                     }
-                    try{ if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { output.textContent=''; } }catch{} return; }
+                    try{ if(typeof window.stopAiOutputSoft === 'function'){ window.stopAiOutputSoft(); } else if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { output.textContent=''; } }catch{} return; }
                 // Build text block of missed Qs in simple structure
                 const letters = ['A','B','C','D','E','F'];
                 const block = missedItems.map(it=>{
@@ -10396,7 +10533,7 @@ ${original}`;
                 const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
                 const liveBtn = document.getElementById('analyzeMissedBtn') || targetBtn;
                 liveBtn.disabled = true; const orig = liveBtn.textContent; liveBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span> Analyzing…';
-                status.textContent = 'Contacting Gemini 2.5…'; try{ if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { output.textContent=''; } }catch{}
+                status.textContent = 'Contacting Gemini 2.5…'; try{ if(typeof window.stopAiOutputSoft === 'function'){ window.stopAiOutputSoft(); } else if(typeof window.stopAiOutput === 'function'){ window.stopAiOutput(); } else { output.textContent=''; } }catch{}
                 try{
                     const resp = await model.generateContent({ contents: [{ role:'user', parts:[{ text: prompt }] }] });
                     const text = (await resp?.response?.text?.())?.trim();
@@ -12913,9 +13050,13 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
         try{ if(outEl) outEl.classList.remove('ai-active'); }catch{}
     };
 
-    // expose stop function — enhanced: aborts any active animated output AND
-    // increments the results-analysis request counter so any in-flight
-    // results-generation responses are considered stale and ignored.
+    // expose stop functions
+    // Soft stop: abort any active animated output WITHOUT touching the global
+    // results-analysis counter. Use this when starting a results analysis to
+    // avoid self-canceling the just-started request.
+    window.stopAiOutputSoft = function(){ try{ if(window.__aiOutputController) window.__aiOutputController.abort(); }catch{} };
+    // Hard stop: abort animated output AND bump the results-analysis counter so
+    // any in-flight responses that check the counter are treated as stale.
     window.stopAiOutput = function(){ try{ if(window.__aiOutputController) window.__aiOutputController.abort(); }catch{} try{ window.__resultsAnalysisRequestCounter = (window.__resultsAnalysisRequestCounter||0) + 1; }catch{} };
 })();
 </script>
