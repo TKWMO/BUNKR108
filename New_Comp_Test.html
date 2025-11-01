@@ -532,7 +532,11 @@
     .saved-header{ display:flex; align-items:center; justify-content:space-between; gap:8px }
     /* Dropdown list container (overlay). Use fixed + very high z-index so nothing overlaps. */
     /* Use absolute so it scrolls with content, portal to body to avoid clipping; keep very high z-index */
-    .saved-menu{ position:absolute; top: 0; left:0; z-index: 2147483647; width: auto; max-width: 96vw; box-sizing: border-box; max-height: 50vh; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
+     /* Use fixed positioning so the dropdown escapes ancestor stacking contexts and clipping
+         (matches other inline dropdowns that are portaled to document.body). Position is
+         computed in JS as viewport coordinates. Keep very high z-index so it appears above
+         other UI modules but below global overlays when appropriate. */
+     .saved-menu{ position:fixed; top: 0; left:0; z-index: 2147483647; width: auto; max-width: 96vw; box-sizing: border-box; max-height: 50vh; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
     .saved-menu.open{ display:block }
     .saved-list{ display:flex; flex-direction:column; gap:8px; padding:8px }
         .saved-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; border-radius:6px; border:1px solid rgba(60,80,120,.35); background: linear-gradient(180deg, rgba(14,20,32,.55), rgba(10,16,28,.55)) }
@@ -628,13 +632,16 @@
     .custom-inline-dropdown .inline-selected{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
     .custom-inline-dropdown .inline-chevron{ opacity:.85 }
      /* Anchor the dropdown list to its parent wrapper (position:relative). Use a z-index
-         slightly below the light-mode overlay so the list remains affected by inversion,
+    slightly below the light-mode overlay so the list is affected by inversion.
+    The overlay has pointer-events:none, so interactivity remains intact. This keeps
+    the dropdown visually consistent with the rest of the UI when inverted display
+    is enabled.
          while still appearing above other in-flow UI elements. */
      /* Use fixed positioning for the dropdown list so ancestor overflow or stacking contexts
          cannot clip it. Placement is computed by JS when opening so it remains visually
          anchored to the trigger while escaping any parent with overflow:hidden. The
          z-index keeps it below the light-mode overlay but above other page elements. */
-     .custom-inline-list{ position:fixed; left:0; top:0; z-index: 2147483645; margin-top:0; min-width: 220px; max-width: 56vw; box-sizing:border-box; background: linear-gradient(180deg, rgba(16,25,40,.98), rgba(10,16,28,.98)); border:1px solid var(--btnBorder); border-radius:10px; box-shadow: 0 10px 24px rgba(0,0,0,.45); padding:6px; max-height: 48vh; overflow:auto; will-change: transform, left, top; }
+    .custom-inline-list{ position:fixed; left:0; top:0; z-index: 2147483645; margin-top:0; min-width: 220px; max-width: 56vw; box-sizing:border-box; background: linear-gradient(180deg, rgba(16,25,40,.98), rgba(10,16,28,.98)); border:1px solid var(--btnBorder); border-radius:10px; box-shadow: 0 10px 24px rgba(0,0,0,.45); padding:6px; max-height: 48vh; overflow:auto; will-change: transform, left, top; }
     .custom-inline-list .custom-inline-item{ padding:8px 10px; border-radius:8px; margin:4px 0; cursor:pointer; color:var(--ink); }
     .custom-inline-list .custom-inline-item:focus, .custom-inline-list .custom-inline-item:hover{ outline:none; background: linear-gradient(180deg, rgba(96,165,250,.06), rgba(24,60,120,.05)); }
     .custom-inline-list .custom-inline-item[aria-selected='true'], .custom-inline-list .custom-inline-item.selected{ background: linear-gradient(90deg, rgba(59,130,246,.95), rgba(37,99,235,.95)); color:#fff }
@@ -680,7 +687,7 @@
 
         /* Full-screen ASCII watermark layer (behind UI, above .bg-anim) */
         .ascii-watermark{
-            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            position: fixed; inset: 0; z-index: -2147483644; pointer-events: none;
             display:flex; align-items:center; justify-content:center; /* center base content */
             overflow: hidden; /* clip outside */
             mix-blend-mode: normal;
@@ -1259,6 +1266,13 @@
             overflow-x: hidden; /* never overflow parent width */
             overflow-wrap: anywhere;
             word-break: break-word;
+        /* Fixed module height as requested */
+        min-height: 430px;
+        max-height: 430px;
+        /* Allow internal scrolling when content exceeds the fixed height */
+        /* Use flex layout so inner elements can size correctly and the log can stretch */
+        display: flex;
+        flex-direction: column;
   }
     /* Inline AI fixer panel (left column) */
     .ai-fix-panel{
@@ -1366,8 +1380,19 @@
             white-space:pre-wrap;background:#071022;padding:10px;border-radius:8px;border:1px solid #22324a;max-height:30vh;overflow:auto;margin-top:10px;color:var(--ink)
         }
         #aiFileDebug{
-            margin-top:8px;background:#071022;padding:8px;border-radius:8px;border:1px solid #22324a;height:180px;max-height: calc(100vh - 320px);overflow:auto;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size:12px; color:var(--muted); width:100%; max-width:100%; box-sizing:border-box; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word
+            margin-top:8px;
+            background:#071022;
+            padding:8px;
+            border-radius:8px;
+            border:1px solid #22324a;
+                /* Flexible log area that expands to fill remaining vertical space in the panel */
+                /* It will scroll internally when content overflows. */
+                flex: 1 1 auto;
+                min-height: 0; /* allow flex child to shrink properly */
+                overflow: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+            font-size:12px; color:var(--muted); width:100%; max-width:100%; box-sizing:border-box;
+            white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word;
         }
         #resultsAiOutput{
             display: flex;
@@ -1511,6 +1536,7 @@
                                                 <div class="ascii-ant" aria-hidden="true"><pre id="rpAscii"></pre></div>
             <div class="rp-row">
                 <select id="rpGenre" class="rp-select" title="Genre" aria-label="Genre">
+                    <option value="">Select genre</option>
                     <option value="custom">Custom</option>
                 </select>
                 <button id="rpSkip" class="rp-btn small" title="Skip to next episode">Skip</button>
@@ -1904,12 +1930,16 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     }catch{}
                 }
                 function getList(){
-                    const g = genreSel.value;
-                    if(g==='custom'){
+                    // Return the list of stations for the currently selected genre.
+                    // Important: if no genre is selected (empty string / falsy), return an empty array
+                    // so the player does not silently fall back to the 'classical' list (Radio Swiss Classic).
+                    const g = (genreSel && typeof genreSel.value !== 'undefined') ? String(genreSel.value).trim() : '';
+                    if(!g) return []; // no selection
+                    if(g === 'custom'){
                         const cust = getCustomStation();
                         return cust || [];
                     }
-                    return stations[g] || stations.classical;
+                    return stations[g] || [];
                 }
                 function getIdx(){ const list = getList(); let i=0; try{ i = parseInt(localStorage.getItem(KEY.idx)||'0',10);}catch{} return isFinite(i)? (i % list.length + list.length)%list.length : 0; }
                 function setIdx(i){ try{ localStorage.setItem(KEY.idx, String(i)); }catch{} }
@@ -1946,7 +1976,16 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 function pick(list, i){ return list[(i % list.length + list.length) % list.length]; }
                 function showYT(show){ if(ytContainer){ ytContainer.hidden = !show; ytContainer.setAttribute('aria-hidden', show? 'false':'true'); } }
                 function load(i, alt){
-                    const list = getList(); if(!list.length){ if(genreSel.value==='custom'){ setNowText('Custom station not set (click ⚙︎)'); } return; }
+                    const list = getList();
+                    if(!list.length){
+                        // No stations available for the current selection. Do not auto-select or load anything.
+                        if(genreSel && genreSel.value === 'custom'){
+                            setNowText('Custom station not set (click ⚙︎)');
+                        } else {
+                            setNowText('No station selected — choose a genre or add a custom station (⚙︎).');
+                        }
+                        return;
+                    }
                     curIdx = (i % list.length + list.length) % list.length; curAlt = Math.max(0, alt|0);
                     const st = pick(list, curIdx);
                     const urls = Array.isArray(st.urls) ? st.urls : (st.url ? [st.url] : []);
@@ -2041,14 +2080,17 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     // Prefer a saved genre when present; otherwise prefer a saved custom station, then a neutral default ('jazz').
                     try{
                         const g = localStorage.getItem(KEY.genre);
+                        // If a saved, valid genre exists, restore it. Otherwise, do NOT auto-select a genre.
+                        // New users should explicitly pick a station before anything is saved or loaded.
                         if(g && (stations[g] || g === 'custom' || g === 'twilight')) {
                             genreSel.value = g;
                         } else {
                             const cust = getCustomStation();
-                            genreSel.value = cust ? 'custom' : 'jazz';
+                            // If the user has a saved custom station, show Custom; otherwise leave selection empty
+                            genreSel.value = cust ? 'custom' : '';
                         }
                     }catch{
-                        try{ genreSel.value = getCustomStation() ? 'custom' : 'jazz'; }catch{ genreSel.value = 'jazz'; }
+                        try{ genreSel.value = getCustomStation() ? 'custom' : ''; }catch{ genreSel.value = ''; }
                     }
                     updateTwilightUI();
                     if(gearBtn){ gearBtn.hidden = genreSel.value!=='custom'; }
@@ -3120,6 +3162,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
 
     /* Keep small AI/API indicator dots visually normal (double-invert) when light-mode overlay is active. */
     body.light-mode-active .api-key-dot,
+    body.light-mode-active .key-dot,
+    body.light-mode-active #aiExplanationKeyDot,
     body.light-mode-active .key-badge .dot,
     body.light-mode-active #dailyKeyDot,
     body.light-mode-active #randomKeyDot,
@@ -3133,6 +3177,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     .theme-orb .orb-label,
     .preserve-palette,
     .api-key-dot,
+    .key-dot,
+    #aiExplanationKeyDot,
     .key-badge .dot,
     #dailyKeyDot,
     #randomKeyDot,
@@ -3143,13 +3189,14 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         will-change: filter, color, background-color, opacity;
     }
 
-    /* Ensure saved/dropdown lists invert when light-mode is active so dropdowns match the rest of the UI. */
+    /* Keep saved-menu above overlay (no inversion) but allow inline dropdown to be inverted
+       by the overlay by not overriding its filter. */
     body.light-mode-active .saved-menu,
     body.light-mode-active .saved-list,
     body.light-mode-active .saved-list .saved-item,
     body.light-mode-active .saved-card .saved-menu {
-        -webkit-filter: invert(1) !important;
-        filter: invert(1) !important;
+        -webkit-filter: none !important;
+        filter: none !important;
     }
 
     /* Small visual for toggled state */
@@ -6681,32 +6728,26 @@ Version: 1.0
             const open = ()=>{
                 try{ trigger.setAttribute('aria-expanded','true'); }catch(e){}
                 try{
-                    // Place the list back into its original parent so it's constrained to the parent dropdown
-                    try{ if(list.parentElement !== _origParent){
-                        try{ if(list.parentElement){ list.parentElement.insertBefore(_placeholder, list); } }catch(e){}
-                        try{ _origParent.appendChild(list); }catch(e){}
-                    } }catch(e){}
-                    // Prepare for measurement
-                    list.classList.remove('hidden');
-                    // position absolutely inside the original parent so it is fixed relative to that parent (does not track during scroll)
-                    list.style.position = 'absolute';
-                    list.style.visibility = 'hidden';
-                    // ensure it sits above siblings; set very high z-index so it overlays other modules
-                    // (this may place it above the inversion overlay; change if you prefer inversion preserved)
-                    list.style.zIndex = '2147483647';
-                    // Force the list width to match the trigger so it stays constrained to the parent
-                    applyPosition();
-                    // compute final position relative to parent and reveal
+                    // Portal the list to document.body while open so it can escape any ancestor
+                    // stacking contexts or overflow clipping. Insert a placeholder so we can restore later.
                     try{
-                        const parentRect = _origParent.getBoundingClientRect();
-                        const rect = trigger.getBoundingClientRect();
-                        const left = Math.round(rect.left - parentRect.left);
-                        const top = Math.round(rect.bottom - parentRect.top + 6);
-                        list.style.left = left + 'px';
-                        list.style.top = top + 'px';
-                        list.style.visibility = 'visible';
-                        try{ list.focus(); }catch(e){}
-                    }catch(e){ try{ list.style.visibility = 'visible'; }catch(e){} }
+                        if(list.parentElement !== document.body){
+                            try{ if(list.parentElement){ list.parentElement.insertBefore(_placeholder, list); } }catch(e){}
+                            document.body.appendChild(list);
+                        }
+                    }catch(e){}
+                    // Prepare for measurement using viewport-fixed positioning
+                    list.classList.remove('hidden');
+                    list.style.position = 'fixed';
+                    list.style.visibility = 'hidden';
+                    // Place the list just below the light-mode overlay (2147483646) so it inverts with the rest of the page
+                    list.style.zIndex = '2147483645';
+                    // Compute size/position in the next frame and show
+                    applyPosition();
+                    list.style.visibility = 'visible';
+                    try{ list.focus(); }catch(e){}
+                    // Begin tracking scroll/resize to keep the portal aligned
+                    startRepositionLoop();
                 }catch(e){ try{ list.classList.remove('hidden'); list.style.visibility='visible'; }catch(_){} }
             };
             trigger.addEventListener('click', (e)=>{ const expanded = trigger.getAttribute('aria-expanded') === 'true'; if(expanded) close(); else open(); });
@@ -6739,7 +6780,7 @@ Version: 1.0
     </script>
 
         <!-- === AI Like-Question Generator (start-only) === -->
-    <section id="ai-likeq-copy" class="card pad ai-likeq" style="position:relative; z-index:-1; pointer-events:auto;">
+    <section id="ai-likeq-copy" class="card pad ai-likeq" style="position:relative; z-index:0; pointer-events:auto;">
             <div class="flex col center gap-8">
                 <div class="key-badge missing" id="globalKeyBadge2" title="Shows whether a Gemini API key is present"><span class="dot"></span><span class="hint">No key set</span></div>
                 <div id="validatorActionRow" class="flex center gap-12">
@@ -9404,11 +9445,11 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                 // Use the bottom of the parent card so the dropdown clearly separates from the card
                 const margin = 12; // visible separation between card and dropdown
                 const menuW = Math.ceil(parentRect.width);
-                // Absolute page coordinates so the menu scrolls with content
-                const scrollY = window.scrollY || window.pageYOffset;
-                const scrollX = window.scrollX || window.pageXOffset;
-                const top = Math.round(parentRect.bottom + margin + scrollY);
-                let left = Math.round(parentRect.left + scrollX);
+                // Use viewport coordinates (parentRect is relative to the viewport) and place
+                // the menu using fixed positioning so it escapes ancestor clipping/stacks.
+                // Do NOT add scroll offsets here because position:fixed expects viewport coords.
+                const top = Math.round(parentRect.bottom + margin);
+                let left = Math.round(parentRect.left);
                 const maxLeft = Math.max(0, window.innerWidth - menuW - 8);
                 if(left > maxLeft) left = maxLeft;
                 savedMenu.style.top = top + 'px';
