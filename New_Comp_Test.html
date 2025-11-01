@@ -3075,18 +3075,23 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <!-- Light Mode toggle: inverts the UI while preserving palette colors for the theme orbs -->
     <button id="enableLightModeBtn" class="btn pill" title="Enable Inverted Display" aria-pressed="false">Enable Light Mode</button>
     <button id="asciiBgToggle" class="btn pill" title="Toggle animated ASCII background">Turn off animated background</button>
-    <div class="news-inline">
-      <button id="newsToggle" class="btn pill" title="Enable or disable the top news bar">Disable news</button>
-      <!-- Collapsible side pill for news sources: toggle expands into a horizontal pill containing options -->
-      <div id="newsSideMenu" class="news-side-menu" aria-hidden="false">
-          <button id="newsMenuToggle" class="btn pill news-menu-toggle" aria-expanded="false" aria-controls="newsSideMenuContent" title="Show news options">+</button>
-          <div id="newsSideMenuContent" class="news-side-menu-content" role="menu" aria-hidden="true">
-              <div class="news-side-pill" role="presentation">
-                  <button class="btn small news-source-opt" data-source="pubmed" id="newsSourcePubMed" role="menuitem">PubMed</button>
-                  <button class="btn small news-source-opt" data-source="arxiv" id="newsSourceArxiv" role="menuitem">arXiv</button>
-              </div>
-          </div>
-      </div>
+            <div class="news-inline">
+                <div class="news-controls-vertical">
+                    <div class="news-toggle-row">
+                        <button id="newsToggle" class="btn pill" title="Enable or disable the top news bar">Disable news</button>
+                        <!-- Collapsible side pill for news sources: toggle expands into a horizontal pill containing options -->
+                        <div id="newsSideMenu" class="news-side-menu" aria-hidden="false">
+                                <button id="newsMenuToggle" class="btn pill news-menu-toggle" aria-expanded="false" aria-controls="newsSideMenuContent" title="Show news options">+</button>
+                                <div id="newsSideMenuContent" class="news-side-menu-content" role="menu" aria-hidden="true">
+                                        <div class="news-side-pill" role="presentation">
+                                                <button class="btn small news-source-opt" data-source="pubmed" id="newsSourcePubMed" role="menuitem">PubMed</button>
+                                                <button class="btn small news-source-opt" data-source="arxiv" id="newsSourceArxiv" role="menuitem">arXiv</button>
+                                        </div>
+                                </div>
+                        </div>
+                    </div>
+                    <button id="enableFocusBtn" class="btn pill" title="Enable focus mode">Enable focus mode</button>
+                </div>
     </div>
     <style id="newsSideMenuStyles">
     /* Side-extending pill menu (left edge) */
@@ -3105,6 +3110,10 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     @media (max-width:720px){ .news-side-menu{ left:6px } .news-side-pill{ padding:6px 8px } }
     /* Inline wrapper so the Disable news button and the + toggle sit side-by-side */
     .news-inline{ display:inline-flex; gap:8px; align-items:center }
+    /* Stack Disable news and Enable focus controls vertically to keep focus button below the news toggle */
+    .news-controls-vertical{ display:flex; flex-direction:column; gap:8px; align-items:flex-start }
+    /* Row that places the Disable news button and the small '+' toggle side-by-side */
+    .news-toggle-row{ display:flex; gap:8px; align-items:center }
     </style>
     <script>
     (function(){
@@ -3131,6 +3140,126 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         document.querySelectorAll('#newsSideMenu .news-source-opt').forEach(b=> b.addEventListener('click', ()=>{ collapse(); toggle.focus(); }));
         // Initialize collapsed
         collapse();
+    })();
+    </script>
+
+    <!-- Focus Mode: darken everything except quiz view -->
+    <style id="focusModeStyles">
+    /* Fullscreen dark overlay used for focus mode */
+    #focusOverlay{ position:fixed; inset:0; z-index:99990; background:rgba(0,0,0,0.88); opacity:0; visibility:hidden; transition:opacity .32s ease, visibility .32s ease; pointer-events:none; }
+    /* When active, show overlay and lift #quiz above it */
+    body.focus-mode-active #focusOverlay{ opacity:1; visibility:visible }
+    body.focus-mode-active #quiz{ position:relative; z-index:100000; pointer-events:auto }
+    /* Make the enable button visually pressed when active */
+    #enableFocusBtn[aria-pressed="true"]{ box-shadow: 0 6px 18px rgba(0,0,0,0.16); transform: translateY(-1px); }
+    /* Ensure quiz-child panels maintain normal pointer events above overlay */
+    body.focus-mode-active #quiz *{ pointer-events:auto }
+    </style>
+
+    <script>
+    (function(){
+        // Focus mode toggle: show a fullscreen dark overlay but keep #quiz visible above it
+        const KEY = '__ui_focus_mode_v1';
+
+        // Initialize focus-mode wiring in a safe, idempotent way.
+        function initFocusMode(){
+            let btn = document.getElementById('enableFocusBtn');
+            // If the button isn't in the DOM yet, retry after DOMContentLoaded
+            if(!btn){
+                if(document.readyState === 'loading'){
+                    document.addEventListener('DOMContentLoaded', initFocusMode, { once:true });
+                }
+                return;
+            }
+
+            function ensureOverlay(){
+                let ov = document.getElementById('focusOverlay');
+                if(!ov){ ov = document.createElement('div'); ov.id = 'focusOverlay'; document.body.appendChild(ov); }
+                return ov;
+            }
+
+            function setState(on){
+                try{
+                    ensureOverlay();
+                    if(on){ document.body.classList.add('focus-mode-active'); }
+                    else { document.body.classList.remove('focus-mode-active'); }
+                    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    btn.textContent = on ? 'Disable focus mode' : 'Enable focus mode';
+                    try{ localStorage.setItem(KEY, on ? '1' : '0'); }catch(e){}
+                }catch(e){ console.warn('focus-mode toggle failed', e); }
+            }
+
+            // Expose a global setter so other modules can disable focus mode (useful when returning to setup)
+            try{ window.__setFocusMode = function(on){ try{ setState(!!on); }catch(e){} }; }catch(e){}
+
+            // Auto-disable focus mode whenever the main setup view becomes visible
+            try{
+                let setupEl = document.getElementById('setup');
+                function disableOnSetupVisible(){
+                    try{
+                        const el = setupEl || document.getElementById('setup');
+                        if(!el) return;
+                        if(!el.classList.contains('hidden')){
+                            try{ setState(false); }catch(e){}
+                        }
+                    }catch(e){}
+                }
+                // Observe class changes so we catch transitions into setup
+                if(window.MutationObserver){
+                    if(setupEl){
+                        const mo2 = new MutationObserver(()=> disableOnSetupVisible());
+                        mo2.observe(setupEl, { attributes:true, attributeFilter:['class'] });
+                    } else {
+                        // If setup not present yet, wait for it to be added then observe
+                        const docMo = new MutationObserver((records, obs)=>{
+                            setupEl = document.getElementById('setup');
+                            if(setupEl){ const mo3 = new MutationObserver(()=> disableOnSetupVisible()); mo3.observe(setupEl, { attributes:true, attributeFilter:['class'] }); obs.disconnect(); disableOnSetupVisible(); }
+                        });
+                        docMo.observe(document.body, { childList:true, subtree:true });
+                    }
+                }
+                // Run once now in case we're already on setup
+                disableOnSetupVisible();
+            }catch(e){}
+
+            // Toggle handler
+            btn.addEventListener('click', function(e){ e.preventDefault(); setState(!document.body.classList.contains('focus-mode-active')); });
+
+            // Initialize from saved pref
+            try{ const s = localStorage.getItem(KEY); if(s === '1') setState(true); }catch(e){}
+
+            // Visibility: show the enableFocusBtn only when #quiz is visible (not .hidden)
+            let quizEl = document.getElementById('quiz');
+            function updateBtnVisibility(){
+                try{
+                    // Re-resolve the elements in case they were re-created
+                    if(!quizEl) quizEl = document.getElementById('quiz');
+                    if(!quizEl) { btn.style.display = 'none'; return; }
+                    const hidden = quizEl.classList.contains('hidden');
+                    btn.style.display = hidden ? 'none' : 'inline-flex';
+                }catch(e){ }
+            }
+
+            // Observe class changes on #quiz so the button appears/disappears automatically
+            if(window.MutationObserver){
+                const mo = new MutationObserver((changes)=>{ updateBtnVisibility(); });
+                // If quizEl not present yet, watch the document for added nodes and then observe quiz
+                if(!quizEl){
+                    const docMo = new MutationObserver(()=>{
+                        quizEl = document.getElementById('quiz');
+                        if(quizEl){ mo.observe(quizEl, { attributes:true, attributeFilter:['class'] }); docMo.disconnect(); updateBtnVisibility(); }
+                    });
+                    docMo.observe(document.body, { childList:true, subtree:true });
+                } else {
+                    mo.observe(quizEl, { attributes:true, attributeFilter:['class'] });
+                }
+            }
+            // Run once on init
+            updateBtnVisibility();
+        }
+
+        // Kick off initialization (idempotent)
+        try{ initFocusMode(); }catch(e){ setTimeout(initFocusMode, 60); }
     })();
     </script>
 
@@ -5496,6 +5625,27 @@ Version: 1.0
         </div>
 
         <div id="fcCardArea" style="display:none;margin-top:12px;">
+            <!-- Flashcard Timer: centered above the card; click to toggle Always vs Hover-only -->
+            <style>
+                /* Flashcard timer styles */
+                .fc-timer-row{ display:flex; justify-content:center; margin:-4px 0 8px; }
+                .fc-timer{
+                    font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+                    color: var(--ink, #e6edf3);
+                    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+                    border: 1px solid rgba(255,255,255,0.10);
+                    padding: 6px 10px; border-radius: 999px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+                    cursor: pointer; -webkit-user-select: none; user-select: none;
+                    transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
+                }
+                .fc-timer:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,0.45); }
+                .fc-timer.hover-only{ opacity: 0; pointer-events: none; }
+                #fcCardArea:hover .fc-timer.hover-only{ opacity: 1; pointer-events: auto; }
+                .fc-timer.pulse{ animation: fcTimerPulse 300ms ease; }
+                @keyframes fcTimerPulse{ 0%{ transform: scale(1); } 50%{ transform: scale(1.07); } 100%{ transform: scale(1); } }
+            </style>
+            <div id="fcTimerRow" class="fc-timer-row"><div id="fcTimer" class="fc-timer" title="Click to toggle: Always visible ↔ Show on hover">00:00</div></div>
             <div id="fcCard" style="min-height:180px;border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(8,12,18,1), rgba(6,10,14,1));border:1px solid rgba(255,255,255,0.04);box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
                 <div id="fcFront" style="font-weight:700;font-size:16px;color:var(--ink);">Question</div>
                 <div id="fcBack" style="margin-top:12px;color:var(--muted);display:none;">Answer</div>
@@ -7334,6 +7484,44 @@ Version: 1.0
     let fcDeck = null; // array of cards { id, q, a, choices, ix }
     let fcSession = null; // { queue: [], pos: 0 }
 
+    // Global Flashcard Timer (cumulative, persisted)
+    const FCTIMER_KEY = 'fc.timer.v1';
+    function readFcTimer(){ try{ return JSON.parse(localStorage.getItem(FCTIMER_KEY) || '{}'); }catch(e){ return {}; } }
+    function writeFcTimer(obj){ try{ localStorage.setItem(FCTIMER_KEY, JSON.stringify(obj||{})); }catch(e){} }
+
+    let fcTimerAccumMs = 0;                 // per-session total (resets at session start)
+    let fcTimerMode = 'always';             // 'always' | 'hover' (default to visible)
+    let fcTimerInterval = null;             // interval id
+    let fcTimerRunningSince = null;         // timestamp when started
+
+    function loadFcTimerState(){ const st = readFcTimer(); if(st && (st.mode === 'hover' || st.mode === 'always')) fcTimerMode = st.mode; }
+    function saveFcTimerState(){ writeFcTimer({ mode: fcTimerMode }); }
+    function formatHMS(ms){ try{ const t = Math.max(0, Math.floor(ms/1000)); const h = Math.floor(t/3600); const m = Math.floor((t%3600)/60); const s = t%60; return (h>0? (h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')) : (m+':'+String(s).padStart(2,'0'))); }catch(e){ return '00:00'; } }
+    function updateFcTimerUI(){ try{
+        const nowPart = fcTimerRunningSince ? (Date.now() - fcTimerRunningSince) : 0; const txt = formatHMS(fcTimerAccumMs + nowPart);
+        const el1 = $('fcTimer'); if(el1){ el1.textContent = txt; el1.classList.toggle('hover-only', fcTimerMode === 'hover'); el1.classList.toggle('always', fcTimerMode !== 'hover'); }
+        const el2 = document.getElementById('fcOverlayTimer'); if(el2){ el2.textContent = txt; el2.classList.toggle('hover-only', fcTimerMode === 'hover'); el2.classList.toggle('always', fcTimerMode !== 'hover'); }
+    }catch(e){} }
+    function tickFcTimer(){ try{ updateFcTimerUI(); }catch(e){} }
+    function startFcTimer(){ try{ fcTimerAccumMs = 0; if(fcTimerRunningSince) return; fcTimerRunningSince = Date.now(); if(!fcTimerInterval) fcTimerInterval = setInterval(tickFcTimer, 1000); updateFcTimerUI(); }catch(e){} }
+    function stopFcTimer(){ try{ if(fcTimerRunningSince){ fcTimerAccumMs += (Date.now() - fcTimerRunningSince); fcTimerRunningSince = null; } if(fcTimerInterval){ clearInterval(fcTimerInterval); fcTimerInterval = null; } updateFcTimerUI(); saveFcTimerState(); }catch(e){} }
+    function toggleFcTimerMode(){ try{ fcTimerMode = (fcTimerMode === 'hover') ? 'always' : 'hover'; const el = $('fcTimer'); const el2 = document.getElementById('fcOverlayTimer'); if(el){ try{ el.classList.add('pulse'); }catch(e){} } if(el2){ try{ el2.classList.add('pulse'); }catch(e){} } setTimeout(()=>{ try{ if(el) el.classList.remove('pulse'); if(el2) el2.classList.remove('pulse'); }catch(e){} }, 360); updateFcTimerUI(); saveFcTimerState(); }catch(e){} }
+    function initFcTimer(){ try{ loadFcTimerState(); updateFcTimerUI(); const el = $('fcTimer'); if(el){ el.addEventListener('click', toggleFcTimerMode); }
+        // Observe for overlay removal to stop timer when session ends/escapes
+        try{ const obs = new MutationObserver((muts)=>{ try{
+                for(const m of muts){
+                    // If the session overlay is removed, stop timer
+                    if(m && m.removedNodes && m.removedNodes.length){
+                        for(const n of m.removedNodes){ try{ if(n && n.id === 'fcSessionOverlay'){ stopFcTimer(); } }catch(e){} }
+                    }
+                    // If the pre-session countdown overlay is removed and fcSessionOverlay exists, start timer now
+                    if(m && m.removedNodes && m.removedNodes.length){
+                        for(const n of m.removedNodes){ try{ if(n && n.id === 'fcPreSessionOverlay' && document.getElementById('fcSessionOverlay')){ try{ startFcTimer(); }catch(e){} } }catch(e){} }
+                    }
+                }
+            }catch(e){} }); obs.observe(document.body, { childList: true, subtree: true }); }catch(e){}
+    }catch(e){} }
+
     function readSrs(){ try{ return JSON.parse(localStorage.getItem(SRS_KEY) || '{}'); }catch(e){ return {}; } }
     function writeSrs(obj){ try{ localStorage.setItem(SRS_KEY, JSON.stringify(obj||{})); }catch(e){} }
 
@@ -7362,6 +7550,7 @@ Version: 1.0
         try{
             if(!fcDeck || !fcDeck.length){ alert('No deck loaded. Click "Load from parsed" first.'); return; }
             const deckCopy = fcDeck.map(c => ({ id: c.id, q: c.q, a: c.a, choices: Array.isArray(c.choices) ? c.choices.slice() : [], ix: c.ix }));
+            // Timer will start after the countdown finishes (see MutationObserver in initFcTimer)
 
             // show a focused white-outlined countdown overlay tailored for flashcards
             function showFcPreSessionOverlay(deck, cb){
@@ -7459,6 +7648,13 @@ Version: 1.0
                         .fc-bg-decor .dot{ position:absolute; border-radius:50%; filter:blur(64px); opacity:0.10; transform:translateZ(0); }
                         .fc-bg-decor .one{ width:520px; height:520px; left:-120px; top:-90px; background: radial-gradient(circle at 30% 30%, rgba(106,169,255,0.95), rgba(106,169,255,0.35) 30%, transparent 60%); }
                         .fc-bg-decor .two{ width:420px; height:420px; right:-140px; bottom:-100px; background: radial-gradient(circle at 70% 70%, rgba(130,100,255,0.95), rgba(130,100,255,0.32) 30%, transparent 60%); }
+                        /* Overlay timer: positioned above the question number but centered over the flashcard text */
+                        .fc-otimer-wrap{ position:absolute; left:50%; transform:translateX(-50%); top:5%; z-index:5; display:flex; justify-content:center; }
+                        .fc-otimer{ font:700 18px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#e6edf3; background: transparent; border: none; padding:0 2px; border-radius:0; box-shadow:none; cursor:pointer; -webkit-user-select:none; user-select:none; transition: transform .12s ease, opacity .12s ease; }
+                        .fc-otimer:hover{ transform: translateY(-2px); }
+                        .fc-otimer.hover-only{ opacity:0; pointer-events:none }
+                        .fc-card:hover .fc-otimer.hover-only{ opacity:1; pointer-events:auto }
+                        .fc-otimer.pulse{ animation: fcTimerPulse 300ms ease; }
                         .fc-card{ position:relative; z-index:2; padding:48px 22px; box-sizing:border-box; max-width:1100px; margin:0 auto }
                         /* Flip container */
                         .fc-flip-wrap{ perspective: 1400px; display:flex; justify-content:center }
@@ -7489,6 +7685,7 @@ Version: 1.0
                         <div class="fc-bg-decor" aria-hidden="true"><div class="dot one"></div><div class="dot two"></div></div>
                         <div class="fc-card">
                             <div id="fcOverlayProg" class="fc-prog">0 / 0</div>
+                            <div class="fc-otimer-wrap"><div id="fcOverlayTimer" class="fc-otimer" title="Click to toggle: Always visible ↔ Show on hover">00:00</div></div>
                             <div class="fc-flip-wrap"><div id="fcFlipContainer" class="fc-flip" role="button" tabindex="0">
                                 <div class="fc-face front"><div id="fcOverlayQ" class="fc-question"></div></div>
                                 <div class="fc-face back"><div id="fcOverlayA" class="fc-answer"></div></div>
@@ -7665,6 +7862,9 @@ Version: 1.0
                     document.getElementById('fcOGood').addEventListener('click', ()=> saveRatingAndAdvance(2));
                     document.getElementById('fcOEasy').addEventListener('click', ()=> saveRatingAndAdvance(3));
                     document.getElementById('fcOExit').addEventListener('click', ()=> closeOverlay());
+                    // Bind overlay timer toggle and sync UI
+                    try{ document.getElementById('fcOverlayTimer')?.addEventListener('click', ()=> toggleFcTimerMode()); }catch(e){}
+                    try{ updateFcTimerUI(); }catch(e){}
 
                     // enable click/keyboard flip on the card
                     const _bindFlip = ()=>{
@@ -7830,6 +8030,9 @@ Version: 1.0
         window.addEventListener('storage', function(e){ try{ if(e && e.key === 'srs.v1'){ renderDeckInfo(); } }catch(e){}});
         window.addEventListener('message', function(ev){ try{ if(ev && ev.data && ev.data.type === 'srs.updated'){ /* srs updated in popup */ renderDeckInfo(); } }catch(e){} });
     }catch(e){ /* ignore if not allowed */ }
+
+    // Initialize timer UI and state on load
+    try{ initFcTimer(); }catch(e){}
 
 })();
 </script>
@@ -8517,9 +8720,12 @@ Version: 1.0
         </div>
         <div class="progress" style="flex:1 1 auto; max-width:420px"><div style="width:${prog}%"></div></div>
       </div>
-      <div class="qcard">
-    <div style="font-weight:700;margin-bottom:8px">Q${esc(it.num)}. ${safeText(it.q)}</div>
-        <div id="choices"></div>
+            <div class="qcard">
+        <div class="q-head" style="display:grid;grid-template-columns:1fr auto;align-items:end;margin-bottom:8px">
+            <div style="font-weight:700">Q${esc(it.num)}. ${safeText(it.q)}</div>
+            <button type="button" class="tts-btn" title="Read question aloud" aria-pressed="false" style="border:none;background:transparent;font-size:18px;padding:4px;cursor:pointer;line-height:1">🔊</button>
+        </div>
+                <div id="choices"></div>
         <div id="status" class="hint" style="margin-top:6px"></div>
       </div>
                 <div class="footer">
@@ -8559,8 +8765,47 @@ Version: 1.0
                                         `;
                 grid.appendChild(left); grid.appendChild(right); quiz.innerHTML = ''; quiz.appendChild(grid);
 
-                // Render LaTeX in the newly inserted quiz content (questions, choices, AI output)
+                // Stop any in-progress per-question TTS when re-rendering
+                try{ if(typeof window.stopTtsOutput === 'function') window.stopTtsOutput(); }catch{}
+                // Wire up per-question TTS button (SpeechSynthesis) and render LaTeX in the newly inserted quiz content (questions, choices, AI output)
                 try{ setTimeout(()=>{ try{ const qarea = quiz; window.renderMathIn && window.renderMathIn(qarea); const aiOut = document.getElementById('resultsAiOutput'); if(aiOut) window.renderMathIn && window.renderMathIn(aiOut); }catch(e){ console.warn('renderMathIn quiz failed', e); } }, 60); }catch(e){}
+
+                // TTS: build a small controller for this page so other code can stop speech when needed
+                try{
+                    // helper to strip HTML tags for spoken text
+                    const _stripTags = s => String(s||'').replace(/<[^>]*>/g, '').replace(/&nbsp;/g,' ').trim();
+                    const tbtn = left.querySelector('.tts-btn');
+                    if(tbtn){
+                        // ensure previous attribute state
+                        tbtn.setAttribute('aria-pressed','false');
+                        tbtn.onclick = function(ev){
+                            try{
+                                // toggle: if speaking, stop; otherwise start
+                                if(window.__ttsSpeaking){
+                                    try{ window.stopTtsOutput && window.stopTtsOutput(); }catch{};
+                                    return;
+                                }
+                                // Build spoken text: question then choices
+                                const qtxt = (it.q || '').toString();
+                                const choicesTxt = (it.choices || []).map((c, i) => `${letters[i] || String(i+1)}. ${_stripTags(c)}`).join('. ');
+                                const speak = `${qtxt}. Choices: ${choicesTxt}.`;
+
+                                // Cancel any lingering speech and speak
+                                try{ speechSynthesis.cancel(); }catch(e){}
+                                const u = new SpeechSynthesisUtterance(speak);
+                                try{ u.lang = document.documentElement.lang || 'en-US'; }catch(e){}
+                                // Save globals so other code can stop playback
+                                window.__ttsUtterance = u;
+                                window.__ttsSpeaking = true;
+                                tbtn.setAttribute('aria-pressed','true');
+                                speechSynthesis.speak(u);
+                                u.onend = u.onerror = function(){ try{ window.__ttsSpeaking = false; window.__ttsUtterance = null; tbtn.setAttribute('aria-pressed','false'); }catch(e){} };
+                            }catch(e){ console.warn('TTS start failed', e); }
+                        };
+                    }
+                    // Expose a stop function so other modules can halt TTS
+                    window.stopTtsOutput = function(){ try{ if(window.__ttsUtterance){ try{ speechSynthesis.cancel(); }catch(e){} window.__ttsUtterance = null; } window.__ttsSpeaking = false; const b = document.querySelector('.tts-btn'); if(b) b.setAttribute('aria-pressed','false'); }catch(e){} };
+                }catch(e){ console.warn('TTS wiring failed', e); }
 
                 // Ensure the AI Explanation wrapper (text + ASCII face) is initialized.
                 // Show the one-time placeholder only once per quiz; after that, ensure the wrapper exists
@@ -8853,6 +9098,8 @@ Version: 1.0
                     state.idx = 0;
                     // start a new attempt covering the review pool
                     startAttempt('review', state.reviewPool.slice());
+                    // start quiz timer for the review session (match startQuiz behavior)
+                    try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
                     renderCurrent();
                 };
             }
@@ -8982,6 +9229,8 @@ Version: 1.0
 
                         state.idx = 0;
                         startAttempt('review', state.reviewPool.slice());
+                        // start quiz timer for this review continuation (match startQuiz behavior)
+                        try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
                         renderCurrent();
                     };
                     $('summary').onclick = showSummary;
@@ -9152,6 +9401,24 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                             }
                             if(k === 'r'){
                                 if(restartBtn){ try{ restartBtn.click(); e.preventDefault(); }catch(e){} }
+                                return;
+                            }
+                        }
+
+                        // If the Keep Going / Continue screen is showing, pressing Enter should trigger Continue
+                        const continueBtn = document.getElementById('continueReview');
+                        if(continueBtn && continueBtn.offsetParent !== null){
+                            if(k === 'enter'){
+                                try{ continueBtn.click(); e.preventDefault(); }catch(e){}
+                                return;
+                            }
+                        }
+
+                        // If a Back button is present (e.g., Back navigation in quiz view), allow 'b' to activate it
+                        const backBtn = document.getElementById('backBtn');
+                        if(backBtn && backBtn.offsetParent !== null){
+                            if(k === 'b'){
+                                try{ if(!backBtn.disabled){ backBtn.click(); e.preventDefault(); } }catch(err){}
                                 return;
                             }
                         }
@@ -11233,6 +11500,15 @@ window.answerValidator = {
                     }
                     if(!window.JSZip) throw new Error('JSZip not available');
                     const zip = await window.JSZip.loadAsync(ab);
+
+                    // helper: minimal ensure for Tesseract when OCR is requested
+                    async function ensureTesseractForPptx(){
+                        if(!ocrEnabled) return false;
+                        if(window.Tesseract && window.Tesseract.recognize) return true;
+                        try{ await loadScript('https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'); }catch(e){ debugLog('tesseract load failed', e?.message||e); return false; }
+                        return !!(window.Tesseract && window.Tesseract.recognize);
+                    }
+
                     // gather slide XML files in numeric order
                     const slideNames = Object.keys(zip.files)
                         .filter(n => /^ppt\/slides\/slide\d+\.xml$/i.test(n))
@@ -11242,22 +11518,96 @@ window.answerValidator = {
                             return na - nb;
                         });
                     if(slideNames.length === 0) throw new Error('No slides found in PPTX');
+
+                    // helper: resolve a rel Target to a zip path (e.g., ../media/image1.png -> ppt/media/image1.png)
+                    function resolveRelTarget(slideName, target){
+                        // slideName like 'ppt/slides/slide1.xml' -> rels at 'ppt/slides/_rels/slide1.xml.rels'
+                        let p = String(target || '');
+                        // remove leading './' and '../'
+                        p = p.replace(/^\.\//, '');
+                        while(p.startsWith('../')) p = p.slice(3);
+                        if(!/^ppt\//i.test(p)) p = 'ppt/' + p;
+                        return p;
+                    }
+                    function guessMimeFromName(n){
+                        const ext = (n||'').toLowerCase().split('.').pop();
+                        switch(ext){
+                            case 'jpg': case 'jpeg': return 'image/jpeg';
+                            case 'png': return 'image/png';
+                            case 'gif': return 'image/gif';
+                            case 'webp': return 'image/webp';
+                            case 'bmp': return 'image/bmp';
+                            case 'tif': case 'tiff': return 'image/tiff';
+                            default: return 'application/octet-stream';
+                        }
+                    }
+
                     const parts = [];
-                    for(const name of slideNames){
-                        const xml = await zip.file(name).async('string');
+                    let totalOcrImages = 0; // soft telemetry
+                    for(const sName of slideNames){
+                        const xml = await zip.file(sName).async('string');
                         // Extract text from <a:t> nodes; treat <a:br/> and paragraph boundaries as breaks
-                        const text = xml
+                        let slideText = xml
                             .replace(/<a:br\s*\/>/gi, '\n')
                             .replace(/<a:p[^>]*>/gi, '\n')
                             .replace(/<a:t[^>]*>([\s\S]*?)<\/a:t>/gi, '$1')
                             .replace(/<[^>]+>/g, ' ')
                             .replace(/\s+/g, ' ')
                             .trim();
-        
-                        if(text) parts.push(text);
+
+                        let ocrAppend = '';
+                        if(ocrEnabled){
+                            // find any r:embed="rIdX" references on the slide
+                            const rids = Array.from(xml.matchAll(/r:embed="([^"]+)"/gi)).map(m=>m[1]);
+                            if(rids.length){
+                                // load rels to map rId -> Target
+                                const relsPath = sName.replace(/slides\/(slide\d+)\.xml$/i, 'slides/_rels/$1.xml.rels');
+                                const relsEntry = zip.file(relsPath);
+                                let relsXml = '';
+                                if(relsEntry){ try{ relsXml = await relsEntry.async('string'); }catch(e){ relsXml=''; } }
+                                const map = new Map();
+                                if(relsXml){
+                                    const rx = /<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/gi;
+                                    let m; while((m = rx.exec(relsXml))){ map.set(m[1], m[2]); }
+                                }
+                                const okTess = await ensureTesseractForPptx();
+                                let slideOcrTexts = [];
+                                if(okTess){
+                                    for(const rid of rids){
+                                        const tgt = map.get(rid);
+                                        if(!tgt) continue;
+                                        const imgPath = resolveRelTarget(sName, tgt);
+                                        const imgFile = zip.file(imgPath);
+                                        if(!imgFile) continue;
+                                        try{
+                                            const u8 = await imgFile.async('uint8array');
+                                            const mime = guessMimeFromName(imgPath);
+                                            const blob = new Blob([u8], { type: mime });
+                                            const url = URL.createObjectURL(blob);
+                                            try{
+                                                debugLog('tesseract recognizing slide image', imgPath);
+                                                const res = await window.Tesseract.recognize(url, 'eng', { logger: m => { if(m && m.status){ debugLog('tesseract', m.status, (m.progress!=null)? ((m.progress*100)|0)+'%':'' ); } } });
+                                                const txt = (res && res.data && res.data.text) ? String(res.data.text).trim() : '';
+                                                if(txt) slideOcrTexts.push(txt);
+                                                totalOcrImages++;
+                                            } finally { try{ URL.revokeObjectURL(url); }catch(e){} }
+                                        }catch(e){ debugLog('ocr on pptx image failed', imgPath, e?.message||e); }
+                                        // safety: avoid runaway OCR on decks with huge numbers of images
+                                        if(slideOcrTexts.join(' ').length > 10000) break;
+                                        if(totalOcrImages > 50) break;
+                                    }
+                                }
+                                if(slideOcrTexts.length){ ocrAppend = '\n[OCR]\n' + slideOcrTexts.join('\n'); }
+                                if(slideOcrTexts.length){ debugLog('pptx slide images OCR text chars', slideOcrTexts.join('\n').length); }
+                            }
+                        }
+
+                        const combined = (slideText || '') + (ocrAppend || '');
+                        if(combined.trim()) parts.push(combined.trim());
                         if(parts.join(' ').length > 200000) break; // safety cap
                     }
-                        const text = normalizeGreek(parts.join('\n\n'));
+
+                    const text = normalizeGreek(parts.join('\n\n'));
                     debugLog('pptx extracted length', text.length, 'slides', slideNames.length);
                     return text;
                 }catch(e){ console.warn('[aiFileGenNew] pptx extraction failed', e); debugLog('pptx extraction failed', e?.message||e); throw new Error('Failed to extract PPTX text'); }
