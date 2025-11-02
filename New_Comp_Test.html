@@ -1479,7 +1479,7 @@
     .attempt-trigger{ appearance:none; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); padding: 8px 12px; border-radius: 12px; cursor:pointer; font-weight:800; letter-spacing:.2px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06) }
     .attempt-trigger:hover{ filter: brightness(1.06) }
     .attempt-trigger .chev{ margin-left:8px; opacity:.85 }
-    .attempt-menu{ position:absolute; top: calc(100% + 6px); left:0; z-index: 20; width: 100%; min-width: 100%; max-width: 92vw; box-sizing: border-box; max-height: 260px; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
+    .attempt-menu{ position:absolute; top: calc(100% + 6px); left:0; z-index: 2147483000; width: 100%; min-width: 100%; max-width: 92vw; box-sizing: border-box; max-height: 260px; overflow:auto; border: 1px solid var(--btnBorder); border-radius: 12px; background: linear-gradient(180deg, rgba(16,25,40,.95), rgba(10,16,28,.95)); box-shadow: 0 10px 24px rgba(0,0,0,.45); display:none }
     .attempt-dd.open .attempt-menu{ display:block }
     .attempt-option{ padding:8px 12px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom: 1px solid rgba(60,80,120,.18) }
     .attempt-option:last-child{ border-bottom: 0 }
@@ -7689,7 +7689,23 @@ Version: 1.0
 
                     // Immediately open the session overlay beneath this pre-overlay so it can fade in during the countdown
                     // Also disable background interaction (keyboard + pointer) while countdown is active by capturing events.
-                    let __preOverlayKeyBlocker = function(ev){ try{ ev.stopImmediatePropagation(); ev.preventDefault(); }catch(e){} };
+                    let __preOverlayKeyBlocker = function(ev){ try{
+                        // Allow the results "Restart" shortcut (r) to pass through when the
+                        // Restart button is visible and enabled. This prevents the countdown
+                        // capture from permanently blocking the user's ability to restart
+                        // from the results screen while overlays are active.
+                        try{
+                            const k = (ev && ev.key) ? ev.key : '';
+                            if(k && k.toLowerCase && k.toLowerCase() === 'r'){
+                                const restartBtn = document.getElementById('restart');
+                                if(restartBtn && restartBtn.offsetParent !== null && !restartBtn.disabled){
+                                    // allow event to propagate so global handlers can pick it up
+                                    return;
+                                }
+                            }
+                        }catch(_){ }
+                        ev.stopImmediatePropagation(); ev.preventDefault();
+                    }catch(e){} };
                     // Capture keydown events at the document level during countdown to prevent underlying handlers from firing.
                     document.addEventListener('keydown', __preOverlayKeyBlocker, true);
                     // Prevent pointer interactions from reaching the page by ensuring the overlay is the topmost element
@@ -8064,7 +8080,7 @@ Version: 1.0
                 // Show a centered completion message (non-modal) then return to main view
                 const existing = document.getElementById('fcCompleteContainerMain'); if(existing) existing.remove();
                 const cont = document.createElement('div'); cont.id = 'fcCompleteContainerMain';
-                cont.style.position = 'fixed'; cont.style.inset = '0'; cont.style.display = 'flex'; cont.style.alignItems = 'center'; cont.style.justifyContent = 'center'; cont.style.zIndex = '99999'; cont.style.pointerEvents = 'none';
+                cont.style.position = 'fixed'; cont.style.inset = '0'; cont.style.display = 'flex'; cont.style.alignItems = 'center'; cont.style.justifyContent = 'center'; cont.style.zIndex = '100010'; cont.style.pointerEvents = 'none';
                 // blur the background behind the completion card (like the countdown popup)
                 cont.style.backdropFilter = 'blur(6px)'; cont.style.background = 'rgba(0,0,0,0.28)';
                 const box = document.createElement('div');
@@ -8420,12 +8436,20 @@ Version: 1.0
             try{
                 if(s==null) return s;
                 let t = String(s);
+                // Decode HTML numeric/named entities first so we normalize the real code points
+                t = decodeNumericEntities(t);
+                t = decodeGreekNamed(t);
                 t = t.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
                 t = t.replace(/Âµ/g, 'µ');
                 t = t.replace(/\u00B5/g, '\u03BC');
-                const VARIANT = { 'ϑ':'θ','ϵ':'ε','ϕ':'φ','ϱ':'ρ','ϖ':'π','ϰ':'κ','ϴ':'Θ','ϐ':'β','ϒ':'Υ' };
-                t = t.replace(/[ϑϵϕϱϖϰϴϐϒ]/g, ch => VARIANT[ch] || ch);
-                if(t.normalize){ t = t.normalize('NFC'); }
+                // Map common Latin/IPA/Cyrillic lookalikes and math alphas to true Greek
+                const VARIANT = {
+                    'ϑ':'θ','ϵ':'ε','ϕ':'φ','ϱ':'ρ','ϖ':'π','ϰ':'κ','ϴ':'Θ','ϐ':'β','ϒ':'Υ',
+                    'ɣ':'γ','Ɣ':'Γ','Ʃ':'Σ','∑':'Σ','∏':'Π','ɑ':'α','ᵅ':'α','⍺':'α','ɸ':'φ','ı':'ι','ĸ':'κ'
+                };
+                t = t.replace(/[ϑϵϕϱϖϰϴϐϒɣƔƩ∑∏ɑᵅ⍺ɸıĸ]/g, ch => VARIANT[ch] || ch);
+                // Use NFKC to fold mathematical bold/italic Greek (e.g., 𝛼, 𝛾) to plain Greek
+                if(t.normalize){ t = t.normalize('NFKC'); }
                 return t;
             }catch{ return s; }
         };
@@ -8556,22 +8580,26 @@ Version: 1.0
                 '&sigmaf;':'ς','&thetasym;':'ϑ','&upsih;':'ϒ','&varphi;':'ϕ'
             };
             const decodeGreekNamed = (s)=> String(s||'').replace(/&(alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|omicron|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Alpha|Beta|Gamma|Delta|Epsilon|Zeta|Eta|Theta|Iota|Kappa|Lambda|Mu|Nu|Xi|Omicron|Pi|Rho|Sigma|Tau|Upsilon|Phi|Chi|Psi|Omega|sigmaf|thetasym|upsih|varphi);/g, (m)=> GREEK_MAP[m]||m);
-            // Normalize Greek letters: unify variant glyphs, fix micro sign, strip zero-width, NFC normalize
+            // Normalize Greek letters: unify variant glyphs, fix micro sign, strip zero-width; prefer NFKC for math alphas
             const normalizeGreek = (s)=>{
                 try{
                     if(s==null) return s;
                     let t = String(s);
+                    // Decode HTML entities first
+                    t = decodeNumericEntities(t);
+                    t = decodeGreekNamed(t);
                     // strip zero-width spaces/marks and BOMs
                     t = t.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
                     // common UTF-8 mis-decode for micro sign
                     t = t.replace(/Âµ/g, 'µ');
                     // unify micro sign to Greek mu
                     t = t.replace(/\u00B5/g, '\u03BC');
-                    // map variant Greek symbols to canonical letters
-                    const VARIANT = { 'ϑ':'θ','ϵ':'ε','ϕ':'φ','ϱ':'ρ','ϖ':'π','ϰ':'κ','ϴ':'Θ','ϐ':'β','ϒ':'Υ' };
-                    t = t.replace(/[ϑϵϕϱϖϰϴϐϒ]/g, ch => VARIANT[ch] || ch);
-                    // NFC normalization (safe in modern browsers)
-                    if(t.normalize){ t = t.normalize('NFC'); }
+                    // map variant Greek symbols + Latin/IPA lookalikes to canonical letters
+                    const VARIANT = { 'ϑ':'θ','ϵ':'ε','ϕ':'φ','ϱ':'ρ','ϖ':'π','ϰ':'κ','ϴ':'Θ','ϐ':'β','ϒ':'Υ',
+                                       'ɣ':'γ','Ɣ':'Γ','Ʃ':'Σ','∑':'Σ','∏':'Π','ɑ':'α','ᵅ':'α','⍺':'α','ɸ':'φ','ı':'ι','ĸ':'κ' };
+                    t = t.replace(/[ϑϵϕϱϖϰϴϐϒɣƔƩ∑∏ɑᵅ⍺ɸıĸ]/g, ch => VARIANT[ch] || ch);
+                    // NFKC to fold mathematical Greek (𝛼, 𝛾, …) to plain Greek
+                    if(t.normalize){ t = t.normalize('NFKC'); }
                     return t;
                 }catch{ return s; }
             };
@@ -8617,7 +8645,9 @@ Version: 1.0
                 try{
                     const cb = document.getElementById('globalGemEnable');
                     if(!cb) return;
-                    if(typeof window.__prevGemEnabled !== 'undefined') cb.checked = !!window.__prevGemEnabled;
+                    // Do NOT automatically re-enable the global Gemini toggle after a quiz.
+                    // Keep it disabled by default so users must explicitly opt-in again.
+                    try{ cb.checked = false; }catch(e){}
                     cb.disabled = false;
                     cb.dispatchEvent(new Event('change'));
                     try{ delete window.__prevGemEnabled }catch(e){}
@@ -8634,7 +8664,8 @@ Version: 1.0
                     const overlay = document.createElement('div'); overlay.id = 'preQuizOverlay';
                     overlay.style.position = 'fixed'; overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
                     overlay.style.display = 'flex'; overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
-                    overlay.style.zIndex = '99999';
+                    // ensure overlay sits above focus-mode quiz (quiz uses z-index:100000 when focus-mode active)
+                    overlay.style.zIndex = '100010';
                     // darker translucent backdrop plus blur for focus
                     overlay.style.background = 'rgba(0,0,0,0.78)';
                     overlay.style.backdropFilter = 'blur(6px)'; overlay.style.WebkitBackdropFilter = 'blur(6px)';
@@ -9240,11 +9271,34 @@ Version: 1.0
                     if(attempts.length){ let def=null; for(let i=attempts.length-1;i>=0;i--){ if(attempts[i]?.missed && attempts[i].missed.length){ def=String(attempts[i].id); break; } } if(!def) def=String(attempts[attempts.length-1].id); sel.value=def; if(trigText) trigText.textContent = labels.find(x=>x.id===def)?.text || 'Select attempt…'; }
                     // Open/close behavior
                     function syncMenuWidth(){ try{ if(!dd||!menu||!trigger) return; const w = Math.ceil(trigger.getBoundingClientRect().width); menu.style.width = w + 'px'; }catch{} }
-                    function setOpen(open){ if(!dd) return; dd.classList.toggle('open', !!open); dd.setAttribute('aria-expanded', open?'true':'false'); if(open) syncMenuWidth(); }
-                    trigger && trigger.addEventListener('click', ()=> setOpen(!dd.classList.contains('open')));
-                    document.addEventListener('click', (e)=>{ if(!dd) return; if(!dd.contains(e.target)){ setOpen(false); } });
-                    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setOpen(false); });
-                    window.addEventListener('resize', ()=>{ if(dd && dd.classList.contains('open')) syncMenuWidth(); });
+                    // Use only the in-flow menu; elevate via z-index in CSS
+                    function setOpen(open){ if(!dd) return; dd.classList.toggle('open', !!open); dd.setAttribute('aria-expanded', open?'true':'false'); if(open){ syncMenuWidth(); } }
+                    // Direct wiring removed to prevent double-toggle conflicts; delegated handler below handles trigger clicks robustly
+                    // Robust delegated wiring (survives DOM refreshes)
+                    if(!window.__attemptDdWired){
+                        window.__attemptDdWired = true;
+                        document.addEventListener('click', function(evt){
+                            const dropdown = document.getElementById('attemptDropdown');
+                            if(!dropdown) return;
+                            const t = evt.target.closest ? evt.target.closest('#attemptTrigger') : null;
+                            const opt = evt.target.closest ? evt.target.closest('.attempt-option') : null;
+                            const menuEl = document.getElementById('attemptMenu');
+                            const trigEl = document.getElementById('attemptTrigger');
+                            // Toggle open when trigger clicked
+                            if(t){ evt.preventDefault(); const willOpen = !dropdown.classList.contains('open');
+                                // use setOpen so portal is managed too
+                                const s = document.getElementById('attemptSelect'); if(!s || !s.options.length){ return; }
+                                setOpen(willOpen);
+                                return; }
+                            // Select an option
+                            if(opt){ const id = opt.getAttribute('data-id'); const selEl = document.getElementById('attemptSelect'); if(id && selEl){ selEl.value = id; try{ selEl.dispatchEvent(new Event('change', { bubbles:true })); }catch{} } setOpen(false); return; }
+                            // Clicked outside -> close
+                            if(!dropdown.contains(evt.target)){ setOpen(false); }
+                        });
+                        document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ setOpen(false); } });
+                        window.addEventListener('resize', ()=>{ const d=document.getElementById('attemptDropdown'); const trig=document.getElementById('attemptTrigger'); const m=document.getElementById('attemptMenu'); if(d && d.classList.contains('open') && trig && m){ try{ m.style.width = Math.ceil(trig.getBoundingClientRect().width) + 'px'; }catch{} }
+                        });
+                    }
                     // Renderer for a selected attempt
                     function renderAttempt(id){
                         const a = attempts.find(z => String(z.id) === String(id));
@@ -9528,6 +9582,14 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                             }
                             if(k === 'r'){
                                 if(restartBtn){ try{ restartBtn.click(); e.preventDefault(); }catch(e){} }
+                                return;
+                            }
+                        }
+                        // Fallback: even if Review Missed is disabled (e.g., 0 missed),
+                        // honor the 'r' key when the Restart button is visible/enabled.
+                        if(restartBtn && restartBtn.offsetParent !== null && !restartBtn.disabled){
+                            if(k === 'r'){
+                                try{ restartBtn.click(); e.preventDefault(); }catch(e){}
                                 return;
                             }
                         }
@@ -10370,11 +10432,11 @@ ${original}`;
 
                 // Show preview modal so user can Insert, Save, or Cancel. Propagate any source tag
                 try{
-                    window.showPreviewModal(text, ( !/^\s*Q\s*\d+/mi.test(text) || !/\bANSWER\s+KEY\b/mi.test(text) ) ? 'AI output may not match expected MCQ format' : '', function(choice){
+                    window.showPreviewModal(text, ( !/^\s*Q\s*\d+/mi.test(text) || /\bANSWER\s+KEY\b/mi.test(text) ) ? 'AI output may not match expected MCQ format' : '', function(choice){
                         try{
                             if(!choice) { stat.textContent = 'Cancelled.'; return; }
                             if(choice === true || (choice && choice.action === 'insert')){
-                                paste.value = text;
+                                paste.value = normalizeGreek(text);
                                 document.getElementById('parseBtn')?.click();
                                 stat.textContent = 'Inserted like-questions.';
                                 // tag propagation removed
@@ -10399,7 +10461,7 @@ ${original}`;
                             // tag propagation removed
                         }catch(e){ console.error('preview callback failed', e); stat.textContent = 'Error during preview action.'; }
                     });
-                }catch(e){ console.error('showPreviewModal failed', e); paste.value = text; document.getElementById('parseBtn')?.click(); stat.textContent = 'Inserted like-questions.'; }
+                }catch(e){ console.error('showPreviewModal failed', e); paste.value = normalizeGreek(text); document.getElementById('parseBtn')?.click(); stat.textContent = 'Inserted like-questions.'; }
             } catch (err) {
                 console.error(err);
                 stat.textContent = "AI generation failed.";
