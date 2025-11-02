@@ -5474,10 +5474,10 @@ The Project’s source code is licensed under the MIT License, granting you broa
 Nothing in these Terms alters or limits your rights under the MIT License. You may view the complete license text at: https://opensource.org/licenses/MIT
 ________________________________________
 3. Nature of the Hosted Demo
-The hosted instance found at eshaw0322-design.github.io/BUNKR108/New_Comp_Test.html is a convenience demo of the open-source Project.
+The hosted instance found at TKWMO.github.io/BUNKR108/New_Comp_Test.html is a convenience demo of the open-source Project.
 All data processing occurs locally in your browser.
 No uploaded documents, quiz content, or API keys are transmitted to or stored by the website operator.
-Use of the hosted demo is entirely voluntary. For privacy or customization, users are strongly encouraged to download the repository from GitHub and run the Project locally. Github repository URL: https://github.com/eshaw0322-design/BUNKR108
+Use of the hosted demo is entirely voluntary. For privacy or customization, users are strongly encouraged to download the repository from GitHub and run the Project locally. Github repository URL: https://github.com/TKWMO/BUNKR108
 ________________________________________
 4. Local Processing and API Keys
 The Service runs fully in the browser using local storage (IndexedDB/localStorage).
@@ -9552,6 +9552,9 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                     if(window.__preQuizOverlayActive) return;
                     if(!state || !state.started) return; // only when quiz active
                     if(isTypingInInput()) return; // don't interfere with typing
+                    // If user is holding a modifier (Ctrl/Cmd/Alt), let the browser handle
+                    // the key (e.g., Ctrl+C for copy). Do not consume modifier combos here.
+                    try{ if(e && (e.ctrlKey || e.metaKey || e.altKey)) return; }catch(_){}
                     const k = (e.key || '').toLowerCase();
                     // If the summary screen is showing review/restart buttons, map Enter/N -> Review Missed and R -> Restart
                     try{
@@ -10698,7 +10701,7 @@ ${original}`;
 
             const original = paste.value;
             const extraCtx = (window.__tbValidateCtx?.pieces||[]).map(p=> p.text).join('\n\n');
-            const prompt = `You are a strict MCQ answer validator. Input is a list of questions with options and an ANSWER KEY. OUTPUT FORMAT (exact):\n\n1) First line must be a single summary line in the form:\nSummary: <CORRECT_COUNT> CORRECT, <INCORRECT_COUNT> INCORRECT\n\n2) After the summary, list ONLY the incorrectly keyed questions, one per line, using this exact format:\nQ<N>: correct is <LETTER>\n\nDo NOT list questions that are correct. Do NOT include any extra commentary, explanation, JSON, or blank lines beyond the required summary and the incorrect-question lines.\n\nUse the following textbook context ONLY to help judge correctness (do not quote it back):\n\n${extraCtx}\n\nHere is the document to validate:\n\n${original}`;
+            const prompt = `You are an expert MCQ grader. You will receive a full MCQ set with an ANSWER KEY at the end. Ignore the key when choosing answers. Use the textbook context only as background knowledge.\n\nTASK: For EACH question, independently select the single best option letter from its choices.\n\nSTRICT OUTPUT FORMAT (no prose, no summary, no blanks):\nQ<N>: <LETTER>\n\n- Output one line per question, in order, covering ALL questions.\n- LETTER must be one of A-F and must exist among the options for that question.\n- Do not include the ANSWER KEY in your reasoning or output.\n- Output nothing else.\n\nBackground context (do not quote):\n${extraCtx}\n\nDocument:\n${original}`;
 
             btn.disabled = true; const orig = btn.textContent; btn.innerHTML = '<span class="spinner" aria-hidden="true"></span> Contacting…';
             stat.textContent = "Contacting Gemini 2.5…";
@@ -10711,37 +10714,66 @@ ${original}`;
                 const text = (await resp?.response?.text?.())?.trim();
                 if (!text) throw new Error("Empty response from model.");
 
-                // Expect a summary line followed by zero-or-more incorrect-question lines.
-                if(!/Summary\s*:\s*\d+\s*(?:OK|CORRECT)\s*,\s*\d+\s*(?:MISMATCH|INCORRECT)/mi.test(text)){
-                    if(!confirm('Model output did not include the expected summary line. Display anyway?')){ stat.textContent = 'Cancelled.'; return; }
-                }
-
-                // Parse Gemini's concise validator lines and render only mismatched question blocks
+                    // Parse predictions from Pass 1 and render confirmed mismatches
                 const dst = document.getElementById('aiValidateOutput2');
                 try{
                     const full = (text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-                    // collect counts and mismatches (model now returns a summary first, then only incorrect items)
-                    let okCount = 0, mismatchCount = 0;
-                    const mismatches = {}; // qnum -> correctLetter
+                    const pass1 = {}; // qnum -> predictedLetter
                     for(const line of full){
-                        // summary line like: Summary: 12 OK, 1 INCORRECT
-                        const sm = line.match(/^Summary\s*:\s*(\d+)\s*(?:OK|CORRECT)\s*,\s*(\d+)\s*(?:MISMATCH|INCORRECT)/i);
-                        if(sm){ okCount = parseInt(sm[1],10)||okCount; mismatchCount = parseInt(sm[2],10)||mismatchCount; continue; }
-
-                        // incorrect lines: Q<N>: correct is <LETTER>  OR  Q<N>: <LETTER>
-                        const m1 = line.match(/^Q\s*(\d+)\s*:\s*(?:correct\s+is\s+)?([A-F])/i);
-                        if(m1){ mismatches[m1[1]] = m1[2].toUpperCase(); continue; }
+                        const m = line.match(/^Q\s*(\d+)\s*:\s*([A-F])/i);
+                        if(m){ pass1[m[1]] = m[2].toUpperCase(); }
                     }
 
-                    // Parse the original document into items and pick mismatched ones (use global parser if needed)
+                    // Parse the original document into items and compute pass-1 mismatches locally
                     const parser = (typeof window !== 'undefined' && window.parseDoc) ? window.parseDoc : (typeof parseDoc === 'function' ? parseDoc : null);
                     const items = parser ? parser(original || '') : [];
-                    const mismatchedItems = items.filter(it => mismatches[it.num]);
+                    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+                    const pass1Mismatches = {}; // qnum -> letter
+                    const initialMismatchedItems = [];
+                    for(const it of items){
+                        const p = (pass1[String(it.num)]||'').toUpperCase();
+                        if(!p) continue;
+                        const currentKey = letters[it.correctIdx] || 'A';
+                        if(p !== currentKey){ pass1Mismatches[String(it.num)] = p; initialMismatchedItems.push(it); }
+                    }
 
-                                        // rendering helpers (show current Key and AI-correct letter side by side)
+                    // Second pass: confirm only mismatches; keep only reaffirmed ones
+                    let cleanedMismatches = { ...pass1Mismatches };
+                    let mismatchedItems = initialMismatchedItems.slice();
+                    if(Object.keys(pass1Mismatches).length){
+                        stat.textContent = 'Double-checking mismatches…';
+                        const subsetBlock = initialMismatchedItems.map(it=>{
+                            const opts = it.choices.map((c,i)=>`- ${(letters[i]||'?')}. ${c}`).join('\n');
+                            return `Q${it.num}. ${it.q}\n${opts}`;
+                        }).join('\n\n');
+                        const prompt2 = `Re-evaluate ONLY these questions and provide your FINAL best answer. If you cannot confidently pick one option, output '?' for that question.\n\nSTRICT OUTPUT: one line per question, no prose, format exactly:\nQ<N>: <LETTER or ?>\n\nQuestions:\n${subsetBlock}`;
+                        try{
+                            const resp2 = await model.generateContent({ contents: [{ role: 'user', parts: [{ text: prompt2 }] }] });
+                            const text2 = (await resp2?.response?.text?.())?.trim();
+                            const confirm = {};
+                            if(text2){
+                                text2.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).forEach(l=>{
+                                    const m2 = l.match(/^Q\s*(\d+)\s*:\s*([A-F\?])/i);
+                                    if(m2){ confirm[m2[1]] = m2[2].toUpperCase(); }
+                                });
+                            }
+                            const finalMap = {};
+                            const finalItems = [];
+                            for(const it of initialMismatchedItems){
+                                const q = String(it.num);
+                                const p1 = pass1Mismatches[q];
+                                const p2 = confirm[q] || '';
+                                const currentKey = letters[it.correctIdx] || 'A';
+                                if(p2 && p2 !== '?' && p2 === p1 && p2 !== currentKey){ finalMap[q] = p2; finalItems.push(it); }
+                            }
+                            cleanedMismatches = finalMap; mismatchedItems = finalItems;
+                        }catch(e){ console.warn('Second-pass confirm failed; using first pass', e); }
+                    }
+
+                        // rendering helpers (show current Key and AI-correct letter side by side)
                     const renderItemHTML = it => {
                         const currentKey = letters[it.correctIdx] || 'A';
-                        const aiKey = (mismatches[String(it.num)] || '').toUpperCase();
+                        const aiKey = (cleanedMismatches[String(it.num)] || '').toUpperCase();
                         const choicesHtml = it.choices.map((c,i)=>{
                             const L = (letters[i]||'?');
                             let cls = 'validator-choice';
@@ -10755,18 +10787,22 @@ ${original}`;
 
                     const globalApply = document.getElementById('validatorApplyBtnGlobal');
                     if(globalApply){ globalApply.classList.add('hidden'); globalApply.style.display = 'none'; globalApply.disabled = false; globalApply.textContent = 'Apply corrections to text'; globalApply._mismatches = null; }
-                    if(!dst) {
+                        // Recompute counts from our cleaned mismatches to avoid model-side drift
+                        const derivedMismatchCount = mismatchedItems.length;
+                        const derivedOkCount = items.length ? (items.length - derivedMismatchCount) : 0;
+
+                        if(!dst) {
                         stat.textContent = 'Validation complete.';
-                    } else if(mismatchCount === 0){
-                        dst.innerHTML = `<div><strong>Summary:</strong> ${okCount} CORRECT, ${mismatchCount} INCORRECT</div><div class="hint">All answers appear correct.</div>`;
+                        } else if(derivedMismatchCount === 0){
+                        dst.innerHTML = `<div><strong>Summary:</strong> ${derivedOkCount} CORRECT, 0 INCORRECT</div><div class="hint">All answers appear correct.</div>`;
                         if(globalApply) { globalApply.classList.add('hidden'); globalApply.style.display = 'none'; globalApply._mismatches = null; }
                         try{ window.hideValidatorApplyButton && window.hideValidatorApplyButton(); }catch(e){}
                         stat.textContent = 'Validation complete.';
                     } else {
                         // collapsed / expanded UI with show more / show less
-                        const collapsedN = Math.min(3, mismatchedItems.length);
-                        const collapsedHTML = `<div><strong>Summary:</strong> ${okCount} CORRECT, ${mismatchCount} INCORRECT</div>` + renderListHTML(mismatchedItems.slice(0, collapsedN)) + (mismatchedItems.length>collapsedN ? `<div style="margin-top:8px"><a href="#" id="validator-show-more" class="linkish">(show more)</a></div>` : '');
-                        const expandedHTML = `<div><strong>Summary:</strong> ${okCount} CORRECT, ${mismatchCount} INCORRECT</div>` + renderListHTML(mismatchedItems) + `<div style="margin-top:8px"><a href="#" id="validator-show-less" class="linkish">(show less)</a></div>`;
+                            const collapsedN = Math.min(3, mismatchedItems.length);
+                            const collapsedHTML = `<div><strong>Summary:</strong> ${derivedOkCount} CORRECT, ${derivedMismatchCount} INCORRECT</div>` + renderListHTML(mismatchedItems.slice(0, collapsedN)) + (mismatchedItems.length>collapsedN ? `<div style="margin-top:8px"><a href="#" id="validator-show-more" class="linkish">(show more)</a></div>` : '');
+                            const expandedHTML = `<div><strong>Summary:</strong> ${derivedOkCount} CORRECT, ${derivedMismatchCount} INCORRECT</div>` + renderListHTML(mismatchedItems) + `<div style="margin-top:8px"><a href="#" id="validator-show-less" class="linkish">(show less)</a></div>`;
 
                         dst.innerHTML = collapsedHTML;
                         dst.style.cursor = 'auto';
@@ -10789,7 +10825,7 @@ ${original}`;
                         // initial attachments
                         attachShowMore();
 
-                        try{ window.showValidatorApplyButton && window.showValidatorApplyButton(mismatches); }catch(e){ console.error(e); }
+                        try{ window.showValidatorApplyButton && window.showValidatorApplyButton(cleanedMismatches); }catch(e){ console.error(e); }
                         // Fallback placement to ensure visibility right under the output
                         try{
                             const actions = document.getElementById('aiValidateActions');
@@ -10801,7 +10837,7 @@ ${original}`;
                                     applyBtn.className = 'btn';
                                     applyBtn.textContent = 'Apply corrections to text';
                                 }
-                                applyBtn._mismatches = mismatches;
+                                applyBtn._mismatches = cleanedMismatches;
                                 applyBtn.classList.remove('hidden');
                                 applyBtn.style.display = 'inline-block';
                                 applyBtn.style.background = '#2563eb';
