@@ -1130,6 +1130,18 @@
             .clip-slot.c-pink{ outline: 2px solid #6a314f; outline-offset: 2px }
             .clip-slot.c-sky{ outline: 2px solid #2d5876; outline-offset: 2px }
             .clip-slot.c-lav{ outline: 2px solid #4b3a7a; outline-offset: 2px }
+            /* Left-side single magnet tab (between top controls and radio) */
+            :root{ --leftTabW: 260px; }
+            #leftMagnet{ position:fixed; left: calc(12px + env(safe-area-inset-left)); top: 180px; height: 240px; width: var(--leftTabW); z-index:188; pointer-events:none; border-radius: 12px; border:1px dashed rgba(100,130,180,.55); background: linear-gradient(180deg, rgba(16,25,40,.55), rgba(10,16,28,.55)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); opacity:.9 }
+            #leftMagnet.slot-hover{ outline: 2px solid var(--brand); outline-offset: 2px }
+            #leftMagnet.occupied{ border:none; opacity:.94 }
+            /* Hoverzone + resizer to expand the magnet width (mirror of right-rail control) */
+            .left-tab-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; left: calc(12px + env(safe-area-inset-left) + var(--leftTabW) + 8px); top: 50%; transform: translateY(-50%); }
+            .left-tab-resizer{ position:fixed; z-index:211; width:28px; height:28px; border-radius:50%; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); cursor: ew-resize; display:flex; align-items:center; justify-content:center; left: calc(12px + env(safe-area-inset-left) + var(--leftTabW) + 8px); top: 50%; transform: translateY(-50%); box-shadow: var(--depth); opacity:0; transition: opacity .15s ease, filter .12s ease; }
+            .left-tab-resizer::before{ content:'\2192'; /* right arrow */ font-weight:900; font-size:14px; line-height:1; }
+            .left-tab-hoverzone:hover + .left-tab-resizer{ opacity:1 }
+            .left-tab-resizer:hover, .left-tab-resizer:focus{ opacity:1; filter:brightness(1.06) }
+            html.booting #leftMagnet, html.booting .left-tab-resizer{ pointer-events:none; opacity:.85 }
         </style>
         <style>
             /* Boot overlay */
@@ -1201,7 +1213,22 @@
             .sticky-rail-hoverzone:hover + .sticky-rail-resizer{ opacity: 1; }
             .sticky-rail-resizer:hover, .sticky-rail-resizer:focus{ opacity: 1; }
             /* small fixed-size ASCII animation area that matches spinner footprint */
-            .boot-ascii-anim{ display:inline-block; width:28px; height:28px; margin: 10px auto 0; text-align:center; font-family: ui-monospace, 'Courier New', monospace; font-size:12px; line-height:14px; color:var(--muted); }
+            /* Wider boot ascii anim so five characters fit comfortably */
+            .boot-ascii-anim{ display:inline-block; width:140px; height:48px; margin: 10px auto 0; text-align:center; font-family: ui-monospace, 'Courier New', monospace; font-size:28px; line-height:44px; letter-spacing:-0.5px; color:var(--muted); overflow:hidden }
+            /* Ancient glyph styling (red, glowing) for special sprinkle frames */
+            .boot-ascii-anim .ancient{ color:#ff5a5a; text-shadow: 0 0 4px rgba(255,75,75,.9), 0 0 8px rgba(255,75,75,.6); font-weight:800 }
+            /* Fixed-width slot styling so glyphs and dots align exactly */
+            .boot-ascii-anim{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-variant-ligatures: none; }
+            .boot-ascii-anim .slot{ display:inline-block; width:1ch; min-width:1ch; text-align:center; line-height:14px; vertical-align:middle; }
+            .boot-ascii-anim .empty{ color: transparent }
+            /* Flip-clock digits (text-only) */
+            .boot-ascii-anim .digits{ display:inline-block; }
+            .boot-ascii-anim .digits{ display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box }
+            .boot-ascii-anim .digit{ display:inline-flex; flex:0 0 20%; max-width:20%; box-sizing:border-box; justify-content:center; align-items:center; text-align:center; line-height:44px; vertical-align:middle; transform-origin: center top; transition: transform .14s ease; font-variant-numeric: tabular-nums; white-space:nowrap }
+            .boot-ascii-anim .digit.ancient{ /* use symbol-capable fonts so glyphs render consistently */
+                font-family: 'Segoe UI Historic', 'Noto Sans Symbols2', 'Segoe UI Symbol', serif; 
+                font-weight:900; font-size:30px; line-height:44px; justify-content:center; display:inline-flex; }
+            .boot-ascii-anim .digit.flip{ transform: rotateX(-90deg); }
         </style>
                 <style>
                     /* Hide only the root page scrollbar; preserve inner scrollbars */
@@ -2906,6 +2933,11 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <!-- Rail width resizer handle -->
     <button id="stickyRailResizer" class="sticky-rail-resizer" aria-label="Resize sticky tabs" title="Drag to resize sticky tabs width" aria-controls="stickyRail" data-min="220" data-max="520"></button>
 
+    <!-- Left-side single magnet tab (shares clip-slot behavior; appears after rail so indices 0..3 stay stable) -->
+    <div id="leftMagnet" class="clip-slot" data-slot="4" title="Left magnet tab (pin a note here)"></div>
+    <div id="leftTabHoverzone" class="left-tab-hoverzone" aria-hidden="true"></div>
+    <button id="leftTabResizer" class="left-tab-resizer" aria-label="Resize left magnet tab" title="Drag to resize left magnet width" aria-controls="leftMagnet" data-min="180" data-max="520"></button>
+
 
         <script>
             // Boot overlay controller: cycles phrases, then fades into the app
@@ -2923,10 +2955,207 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                 // Mark as played for this session
                                 try{ sessionStorage.setItem('__bootPlayed','1'); }catch(e){}
                 // Small ASCII animation for the boot card (replaces spinner)
+                // Flip-clock style: countdown from 108.00 with random decreasing steps.
+                // Every ~5–6 seconds, all digits briefly switch to hieroglyphs, then return to the current value (no reset)
+                // so the countdown can approach ~2.00. On overlay end, flash glyphs, then flip back to 108.00.
+                // Entirely text-based and per-digit flip animation via CSS.
                 var _bootAnimId = null;
-                var _bootAnimFrames = ['[   ]','[.  ]','[.. ]','[...]','[.. ]','[.  ]'];
-                function startBootAnim(){ var el=document.getElementById('bootAsciiAnim'); if(!el) return; var i=0; _bootAnimId = setInterval(function(){ el.textContent = _bootAnimFrames[i%_bootAnimFrames.length]; i++; }, 220); }
-                function stopBootAnim(){ try{ if(_bootAnimId) clearInterval(_bootAnimId); _bootAnimId=null; var el=document.getElementById('bootAsciiAnim'); if(el) el.textContent='[   ]'; }catch(e){} }
+                (function(){
+                    // Five-character MMSSS timer (3-digit minutes + 2-digit seconds), starting at 108:00 → "10800"
+                    var START_MIN = 108;
+                    var START_SECS = START_MIN * 60; // 6480
+                    var currentSecs = START_SECS;
+                    var inGlitch = false;
+                    var nextGlitchTs = Date.now() + 9500; // placeholder; start() will align with cycle end
+                    var TICK = 120; // snappier tick for more responsive flips
+                    // Only the specified symbols
+                    var GLYPH_SET = ['𓇋','𓎛','𓄿','𓏏','𓌙'];
+
+                    function seedString(){ return '108.00'; }
+                    // Render 5 characters total: 3-digit minutes + 2-digit seconds (no punctuation)
+                    function fmtFiveFromSecs(total){
+                        total = Math.max(0, Math.floor(total));
+                        var mins = Math.floor(total / 60);
+                        var secs = total % 60;
+                        return String(mins).padStart(3,'0').slice(-3) + String(secs).padStart(2,'0');
+                    }
+                    function el(){ return document.getElementById('bootAsciiAnim'); }
+                    function ensureStructure(str){
+                        var host = el(); if(!host) return null;
+                        // Ensure exactly 5 slots so glyphs fill full array
+                        var slots = 5;
+                        var chars = (str||'').toString().split('');
+                        // If provided string shorter or longer, pad/truncate to slots
+                        if(chars.length < slots){
+                            while(chars.length < slots) chars.push(' ');
+                        } else if(chars.length > slots){
+                            chars = chars.slice(0, slots);
+                        }
+                        var html = '<span class="digits">' + chars.map(function(ch){ return '<span class="digit">'+ch+'</span>'; }).join('') + '</span>';
+                        host.innerHTML = html; return host.querySelectorAll('.digit');
+                    }
+                    function spans(){ var host = el(); return host ? host.querySelectorAll('.digit') : null; }
+                    // Per-digit staggered updates: leftmost slow, rightmost fast
+                    var digitDelays = [220, 140, 80, 40, 12]; // ms delays for indices 0..4
+                    function updateDigits(str, order){
+                        var sp = spans(); if(!sp || sp.length !== 5){ sp = ensureStructure(str); }
+                        if(!sp) return;
+                        var cur = Array.prototype.map.call(sp, function(s){ return s.textContent || ' '; });
+                        var target = (str||'').toString().split('');
+                        // Ensure target is length 5
+                        if(target.length < 5){ while(target.length<5) target.push(' '); }
+                        if(target.length > 5) target = target.slice(0,5);
+                        // If an order (scramble) was provided, respect it for timing positions
+                        var orderMap = null;
+                        if(Array.isArray(order) && order.length===5){ orderMap = order.slice(); }
+                        for(let i=0;i<5;i++){
+                            if(cur[i] === target[i]) continue;
+                            (function(idx){
+                                var d = sp[idx];
+                                var baseDelay = digitDelays[idx] || 60;
+                                // If orderMap provided, place earlier items slightly earlier
+                                var extra = 0;
+                                if(orderMap){ var pos = orderMap.indexOf(idx); if(pos>=0) extra = pos*8; }
+                                try{ d.classList.add('flip'); }catch(e){}
+                                setTimeout(function(){
+                                    // Abort any numeric update if we're currently showing the glyph glitch
+                                    if(inGlitch) return;
+                                    try{ d.textContent = target[idx]; d.classList.remove('ancient'); }catch(e){}
+                                    setTimeout(function(){ try{ d.classList.remove('flip'); }catch(e){} }, 120);
+                                }, baseDelay + extra);
+                            })(i);
+                        }
+                    }
+                    function randomStepSecs(){
+                        // kept for compatibility when occasional large jumps are desired
+                        var r = Math.random(); var step;
+                        if(currentSecs > 1800)      step = 30 + Math.floor(r*60);
+                        else if(currentSecs > 600)  step = 10 + Math.floor(r*20);
+                        else if(currentSecs > 120)  step = 5 + Math.floor(r*6);
+                        else                        step = 1 + Math.floor(r*4);
+                        return step;
+                    }
+                    // Time accumulator to produce approximately 1-second decrements while tick() runs faster
+                    var tickAcc = 0;
+                    var lastTickTs = Date.now();
+                    var secondToggle = false; // for every-other-second small jump
+                    // 10-second cycle controls: every 10s trigger an accelerated flip phase
+                    var CYCLE_MS = 10000;
+                    // Global speed multiplier for the countdown (1 = real-time, 4 = 4x faster)
+                    var SPEED_MULT = 4;
+                    var accelUntil = 0;     // timestamp until acceleration applies
+                    var accelFactor = 1;    // 1 = normal, 3-4 = accelerated
+                    var viewHoldUntil = 0;  // timestamp to hold a randomly lowered number for ~2s
+                    var _cycleTimerId = null;
+                    function toGlyphs(){
+                        // Immediately set all five slots to the glyphs to avoid mixed numeric/glyph states.
+                        var sp = spans(); if(!sp || sp.length !== 5){ sp = ensureStructure(fmtFiveFromSecs(currentSecs)); }
+                        if(!sp) return;
+                        for(var i=0;i<5;i++){
+                            try{
+                                sp[i].textContent = GLYPH_SET[i] || ' ';
+                                sp[i].classList.add('ancient');
+                                // small flip animation kickoff
+                                sp[i].classList.add('flip');
+                                (function(node){ setTimeout(function(){ try{ node.classList.remove('flip'); }catch(e){} }, 140); })(sp[i]);
+                            }catch(e){}
+                        }
+                    }
+                    function resetToSeedRandom(){
+                        var t = fmtFiveFromSecs(START_SECS); // "10800"
+                        var order = Array.from({length:t.length}, function(_,i){ return i; });
+                        for(var i=order.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0; var tmp=order[i]; order[i]=order[j]; order[j]=tmp; }
+                        updateDigits(t, order);
+                    }
+                    function tick(){
+                        try{
+                            var now = Date.now();
+                            // If we're in a glyph glitch, do nothing until it finishes
+                            if(inGlitch){ lastTickTs = now; return; }
+                            // If we're holding a lower-number view, don't decrement until the hold expires
+                            if(now < viewHoldUntil){ lastTickTs = now; return; }
+                            var elapsed = now - lastTickTs; lastTickTs = now;
+                            tickAcc += elapsed;
+                            // Handle scheduled glyph glitches first
+                            if(now >= nextGlitchTs){
+                                inGlitch = true;
+                                toGlyphs();
+                                setTimeout(function(){
+                                    // After glyphs, reset to the seed value as requested
+                                    currentSecs = START_SECS;
+                                    updateDigits(fmtFiveFromSecs(currentSecs));
+                                    // schedule next glitch aligned with cycle end
+                                    nextGlitchTs = Date.now() + (CYCLE_MS - 150);
+                                    inGlitch = false;
+                                }, 600);
+                                return;
+                            }
+                            // Consume accumulated time in 1s steps to make the countdown feel like real seconds
+                            var changed = false;
+                            while(tickAcc >= 1000){
+                                tickAcc -= 1000;
+                                secondToggle = !secondToggle;
+                                // Base decrement is 1 second; on every-other-second, make a small "flip-ahead" to bias toward zero
+                                var dec = 1;
+                                if(secondToggle && Math.random() < 0.6){ dec += 1 + Math.floor(Math.random()*2); }
+                                // Apply global speed multiplier (user requested 4x faster)
+                                if(typeof SPEED_MULT !== 'undefined' && SPEED_MULT > 1){ dec = Math.floor(dec * SPEED_MULT); }
+                                // Apply acceleration factor during cycle window (3-4x faster)
+                                if(now < accelUntil && accelFactor > 1){ dec = Math.floor(dec * accelFactor); }
+                                currentSecs = Math.max(0, currentSecs - dec);
+                                changed = true;
+                            }
+                            // Occasionally perform a larger "catch-up" jump (~10 minutes) but rare
+                            if(Math.random() < 0.06 && currentSecs > 900){
+                                var jump = 600 + Math.floor(Math.random()*181); // 600–780s (~10–13min)
+                                currentSecs = Math.max(0, currentSecs - jump);
+                                changed = true;
+                            }
+                            if(changed){ updateDigits(fmtFiveFromSecs(currentSecs)); }
+                        }catch(e){}
+                    }
+                    function _cycleKick(){
+                        try{
+                            // Start a short accelerated phase (3-4x) for ~1.5s
+                            accelFactor = 3 + Math.floor(Math.random()*2); // 3 or 4
+                            accelUntil = Date.now() + 1500;
+                            // Pick a random lower number to display briefly (~2s)
+                            if(currentSecs > 10){
+                                // lower by a value up to roughly half of the remaining (but at least a few seconds)
+                                var maxLower = Math.min(Math.floor(currentSecs/2), 600);
+                                var lowerBy = 5 + Math.floor(Math.random() * Math.max(5, maxLower));
+                                currentSecs = Math.max(0, currentSecs - lowerBy);
+                            } else {
+                                currentSecs = 0;
+                            }
+                            updateDigits(fmtFiveFromSecs(currentSecs));
+                            // Hold this view briefly so user can read it (~1.2s)
+                            viewHoldUntil = Date.now() + 1200;
+                            // schedule next glitch aligned with cycle end
+                            nextGlitchTs = Date.now() + (CYCLE_MS - 150);
+                        }catch(e){}
+                    }
+
+                    function start(){
+                        var host = el(); if(!host) return;
+                        currentSecs = START_SECS; inGlitch = false; nextGlitchTs = Date.now() + (CYCLE_MS - 150);
+                        tickAcc = 0; lastTickTs = Date.now(); secondToggle = false;
+                        ensureStructure(fmtFiveFromSecs(currentSecs));
+                        _bootAnimId = setInterval(tick, TICK);
+                        // Start the 10s cycle timer
+                        if(_cycleTimerId) clearInterval(_cycleTimerId);
+                        _cycleTimerId = setInterval(_cycleKick, CYCLE_MS);
+                    }
+                    function stop(){
+                        try{
+                            if(_bootAnimId) clearInterval(_bootAnimId); _bootAnimId=null;
+                            if(_cycleTimerId) clearInterval(_cycleTimerId); _cycleTimerId = null;
+                            inGlitch = true; toGlyphs();
+                            setTimeout(function(){ resetToSeedRandom(); inGlitch = false; }, 420);
+                        }catch(e){}
+                    }
+                    startBootAnim = start; stopBootAnim = stop;
+                })();
                 var phrases = [
     "[BOOT] Don’t tell me what I can’t do… initializing.",
     "[FETCH] We have to go back… requesting previous state.",
@@ -3310,6 +3539,22 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     #enableFocusBtn[aria-pressed="true"]{ box-shadow: 0 6px 18px rgba(0,0,0,0.16); transform: translateY(-1px); }
     /* Ensure quiz-child panels maintain normal pointer events above overlay */
     body.focus-mode-active #quiz *{ pointer-events:auto }
+    /* When hovering the Disable/Enable Focus button while in focus mode,
+       lift the button above the overlay so it appears on the same plane
+       as the quiz view (and remains clickable). This only activates on
+       hover/focus to avoid exposing other controls unintentionally. */
+    body.focus-mode-active #enableFocusBtn{
+        transition: transform .12s ease, box-shadow .12s ease, z-index 0s;
+    }
+    body.focus-mode-active #enableFocusBtn:hover,
+    body.focus-mode-active #enableFocusBtn:focus{
+        position: relative;
+        z-index: 100001; /* above #quiz (100000) */
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.6);
+        /* ensure it receives pointer events even if its container is inert */
+        pointer-events: auto;
+    }
     </style>
 
     <script>
@@ -3380,6 +3625,54 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
 
             // Toggle handler
             btn.addEventListener('click', function(e){ e.preventDefault(); setState(!document.body.classList.contains('focus-mode-active')); });
+
+            // Elevate on hover/focus: move the button to document.body while hovered so it can
+            // escape ancestor stacking contexts and render above the focus overlay.
+            (function(){
+                let placeholder = null;
+                function elevate(){
+                    try{
+                        if(!document.body.classList.contains('focus-mode-active')) return;
+                        if(btn.dataset.elevated) return;
+                        const r = btn.getBoundingClientRect();
+                        // create a placeholder so layout doesn't jump
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'focus-btn-placeholder';
+                        placeholder.style.width = r.width + 'px';
+                        placeholder.style.height = r.height + 'px';
+                        placeholder.style.display = getComputedStyle(btn).display || 'inline-block';
+                        btn.parentNode.insertBefore(placeholder, btn);
+                        // move button to body and fix its position
+                        document.body.appendChild(btn);
+                        btn.style.position = 'fixed';
+                        btn.style.left = Math.round(r.left) + 'px';
+                        btn.style.top = Math.round(r.top) + 'px';
+                        btn.style.zIndex = '100001';
+                        btn.dataset.elevated = '1';
+                    }catch(e){}
+                }
+                function restore(){
+                    try{
+                        if(!btn.dataset.elevated) return;
+                        if(placeholder && placeholder.parentNode){ placeholder.parentNode.insertBefore(btn, placeholder); placeholder.parentNode.removeChild(placeholder); }
+                        placeholder = null;
+                        // reset styles
+                        btn.style.position = '';
+                        btn.style.left = '';
+                        btn.style.top = '';
+                        btn.style.zIndex = '';
+                        delete btn.dataset.elevated;
+                    }catch(e){}
+                }
+                btn.addEventListener('mouseenter', elevate);
+                btn.addEventListener('focus', elevate);
+                btn.addEventListener('mouseleave', restore);
+                btn.addEventListener('blur', restore);
+                // Keep button positioned over placeholder if window resizes while elevated
+                window.addEventListener('resize', function(){ try{ if(btn.dataset.elevated && placeholder){ const r = placeholder.getBoundingClientRect(); btn.style.left = Math.round(r.left) + 'px'; btn.style.top = Math.round(r.top) + 'px'; } }catch(e){} });
+                // Ensure we restore when focus-mode is turned off
+                document.addEventListener('focus-mode-off', restore);
+            })();
 
             // Initialize from saved pref
             try{ const s = localStorage.getItem(KEY); if(s === '1') setState(true); }catch(e){}
@@ -12747,6 +13040,36 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     // Re-layout any clipped notes now that the rail position/height changed
                     try{ layoutAllSlots(); }catch{}
                 }
+                // Position the left magnet tab between top controls and the radio player
+                try{
+                    const leftTab = document.getElementById('leftMagnet');
+                    const hzL = document.getElementById('leftTabHoverzone');
+                    const resL = document.getElementById('leftTabResizer');
+                    const controls = document.getElementById('bgToggles');
+                    const radio = document.getElementById('radioPlayer');
+                    if(leftTab && controls && radio){
+                        const cRect = controls.getBoundingClientRect();
+                        const rRect = radio.getBoundingClientRect();
+                        const gapTop = 12, gapBottom = 12;
+                        const top = Math.round(cRect.bottom + gapTop);
+                        const bottom = Math.round(rRect.top - gapBottom);
+                        const h = Math.max(0, bottom - top);
+                        // Show only if there is reasonable space; otherwise hide
+                        if(h >= 120){
+                            leftTab.style.top = top + 'px';
+                            leftTab.style.height = h + 'px';
+                            leftTab.style.display = '';
+                            // Center resizer/hoverzone on this span
+                            const cy = Math.round(top + h/2);
+                            if(hzL){ hzL.style.top = cy + 'px'; }
+                            if(resL){ resL.style.top = cy + 'px'; }
+                        } else {
+                            leftTab.style.display = 'none';
+                            if(hzL) hzL.style.top = '50%';
+                            if(resL) resL.style.top = '50%';
+                        }
+                    }
+                }catch{}
                 // Keep resizer/hoverzone aligned with current rail width and vertically centered on the rail
                 try{
                     const handle = document.getElementById('stickyRailResizer');
@@ -12816,6 +13139,8 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                 // Keep dock top-right anchored under title; also keep notes on-screen when viewport changes (zoom/resize)
                 window.addEventListener('resize', function(){
                     positionDockAndPanel();
+                    // also re-position the left magnet tab after viewport changes
+                    try{ const _=document.getElementById('leftMagnet'); if(_) {/* noop; work done in positionDockAndPanel */} }catch{}
                     try{
                         const vw = window.innerWidth, vh = window.innerHeight; const M=8;
                         document.querySelectorAll('.sticky-note').forEach(function(el){
@@ -12859,6 +13184,23 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     });
                 }catch{}
 
+                // Track changes in the top controls area and radio show/hide to keep left tab reflexive
+                try{
+                    const controls = document.getElementById('bgToggles');
+                    const radio = document.getElementById('radioPlayer');
+                    if(window.ResizeObserver && controls){
+                        const ro2 = new ResizeObserver(()=> positionDockAndPanel());
+                        ro2.observe(controls);
+                    }
+                    // Radio toggle button updates class; observe class changes
+                    const rpTog = document.getElementById('rpToggle');
+                    rpTog && rpTog.addEventListener('click', ()=> setTimeout(positionDockAndPanel, 120));
+                    if(window.MutationObserver && radio){
+                        const mo2 = new MutationObserver(()=> positionDockAndPanel());
+                        mo2.observe(radio, { attributes:true, attributeFilter:['class','style'] });
+                    }
+                }catch{}
+
                 // Rail resizer wiring
                 (function(){
                     const handle = document.getElementById('stickyRailResizer');
@@ -12891,6 +13233,28 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                         try{ handle.style.zIndex = panel && !panel.classList.contains('hidden') ? '10000' : '211'; }catch{}
                     });
                     panel && mo.observe(panel, { attributes:true, attributeFilter:['class'] });
+                })();
+
+                // Left magnet tab resizer wiring (mirrors sticky rail behavior)
+                (function(){
+                    const handle = document.getElementById('leftTabResizer');
+                    const KEY = '__leftTabW';
+                    function getW(){ try{ const v = parseInt(localStorage.getItem(KEY)||'',10); if(isFinite(v) && v>=120 && v<=720) return v; }catch{} try{ const cs = getComputedStyle(document.documentElement); const w = parseInt(cs.getPropertyValue('--leftTabW')||'260',10); return isFinite(w)?w:260; }catch{} return 260; }
+                    function setW(px){ const min = parseInt(handle?.dataset.min||'180',10); const max = parseInt(handle?.dataset.max||'520',10); const v = Math.max(min, Math.min(max, Math.round(px))); document.documentElement.style.setProperty('--leftTabW', v+'px'); try{ localStorage.setItem(KEY, String(v)); }catch{} }
+                    // initialize width from storage
+                    setW(getW());
+                    if(!handle) return;
+                    let dragging=false, startX=0, startW=getW();
+                    handle.addEventListener('pointerdown', (e)=>{ dragging=true; startX=e.clientX; startW=getW(); try{ handle.setPointerCapture(e.pointerId); }catch{} e.preventDefault(); });
+                    window.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dx = e.clientX - startX; setW(startW + dx); });
+                    window.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; try{ handle.releasePointerCapture(e.pointerId); }catch{} });
+                    // keyboard support
+                    handle.setAttribute('tabindex','0');
+                    handle.addEventListener('keydown', (e)=>{ const step = e.shiftKey?20:10; if(e.key==='ArrowLeft'){ e.preventDefault(); setW(getW()-step); } else if(e.key==='ArrowRight'){ e.preventDefault(); setW(getW()+step); } else if(e.key==='Home'){ e.preventDefault(); setW(parseInt(handle.dataset.min||'180',10)); } else if(e.key==='End'){ e.preventDefault(); setW(parseInt(handle.dataset.max||'520',10)); } });
+                    // keep resizer aligned vertically with left magnet tab span on panel/dock movement
+                    const sync = ()=>{ try{ const lm = document.getElementById('leftMagnet'); const hz = document.getElementById('leftTabHoverzone'); if(lm && (handle||hz)){ const r = lm.getBoundingClientRect(); const cy = Math.round(r.top + r.height/2); if(handle) handle.style.top = cy + 'px'; if(hz) hz.style.top = cy + 'px'; } }catch{} };
+                    window.addEventListener('resize', sync);
+                    setTimeout(sync, 0);
                 })();
 
                 // Track title box position changes (caused by --topSafeArea updates) and realign
