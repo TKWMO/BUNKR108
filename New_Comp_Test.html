@@ -3115,8 +3115,31 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <div class="theme-orb orb-greyscale" data-theme="greyscale" title="Greyscale"></div>
     </div>
     <div class="mt-8 flex gap-8" id="bgToggles">
-    <!-- Light Mode toggle: inverts the UI while preserving palette colors for the theme orbs -->
-    <button id="enableLightModeBtn" class="btn pill" title="Enable Inverted Display" aria-pressed="false">Enable Light Mode</button>
+    <!-- Group the inverted display controls in a single horizontal row -->
+    <div id="invertControlsRow" class="inline-controls-row">
+        <!-- Light Mode toggle: inverts the UI while preserving palette colors for the theme orbs -->
+        <button id="enableLightModeBtn" class="btn pill" title="Enable Inverted Display" aria-pressed="false">Enable Inverted Display</button>
+        <!-- Invert Timer mini side-menu (sits to the right of the inverted display button) -->
+        <div id="invertTimerMenu" class="news-side-menu" aria-hidden="false" style="display:inline-flex">
+            <button id="invertTimerToggle" class="btn pill news-menu-toggle" aria-expanded="false" aria-controls="invertTimerMenuContent" title="Set auto-flip speed">⏱</button>
+            <div id="invertTimerMenuContent" class="news-side-menu-content" role="menu" aria-hidden="true">
+                <div class="news-side-pill minimalist" role="presentation">
+                    <label for="invertTimerValue" class="visually-hidden">Interval value</label>
+                    <input id="invertTimerValue" class="invert-input" type="number" min="0" step="1" value="10" aria-label="Interval value" title="0 disables auto-flip" />
+                    <label for="invertTimerUnit" class="visually-hidden">Interval unit</label>
+                    <select id="invertTimerUnit" class="invert-select" aria-label="Interval unit">
+                        <option value="s" selected>s</option>
+                        <option value="ms">ms</option>
+                    </select>
+                    <button id="invertTimerApply" class="icon-btn" title="Set auto-flip" aria-label="Set auto-flip">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <button id="asciiBgToggle" class="btn pill" title="Toggle animated ASCII background">Turn off animated background</button>
             <div class="news-inline">
                 <div class="news-controls-vertical">
@@ -3146,6 +3169,18 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     .news-side-menu-content{ transform-origin:left center; transform:scaleX(0); transition:transform 220ms cubic-bezier(.2,.9,.2,1), opacity 180ms ease; opacity:0; display:flex; align-items:center; }
     .news-side-menu.expanded .news-side-menu-content{ transform:scaleX(1); opacity:1 }
     .news-side-pill{ display:flex; flex-direction:row; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+    /* Blur and deepen shadow beneath side menus for better contrast */
+    #invertTimerMenu .news-side-menu-content,
+    #newsSideMenu .news-side-menu-content{ -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    /* Minimalist capsule styling */
+    #invertTimerMenu .news-side-pill.minimalist{ padding:6px 8px; gap:8px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.03); box-shadow: 0 8px 20px rgba(2,6,12,0.45); }
+    /* Compact controls inside timer capsule (minimal aesthetics) */
+    #invertTimerMenu .invert-input, #invertTimerMenu .invert-select{ height:30px; min-height:30px; padding:6px 8px; font-size:13px; border-radius:8px; background: transparent; color:var(--ink); border:1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
+    #invertTimerMenu .invert-input{ width:56px; text-align:center }
+    #invertTimerMenu .invert-select{ width:54px }
+    /* Icon-only apply button */
+    .icon-btn{ display:inline-grid; place-items:center; width:34px; height:34px; padding:0; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01)); color: var(--ink); cursor:pointer }
+    .icon-btn svg{ color: var(--ink); opacity:.95 }
     /* Make the inner buttons capsule shaped (pills) and align horizontally */
     .news-side-pill .btn{ border-radius:999px; padding:8px 12px; white-space:nowrap; font-weight:700; box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); background:transparent; }
     /* Make toggle visually change to minus when expanded via JS (no extra close button) */
@@ -3157,6 +3192,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     .news-controls-vertical{ display:flex; flex-direction:column; gap:8px; align-items:flex-start }
     /* Row that places the Disable news button and the small '+' toggle side-by-side */
     .news-toggle-row{ display:flex; gap:8px; align-items:center }
+    /* Keep the Inverted Display button and its timer toggle on the same line */
+    .inline-controls-row{ display:inline-flex; gap:8px; align-items:center; flex-wrap: nowrap }
     /* Per-question TTS button: hide visually until card hover or keyboard focus */
     .qcard .tts-btn{
         opacity: 0;
@@ -3188,6 +3225,68 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             menu.classList.remove('expanded');
             toggle.setAttribute('aria-expanded','false');
             content.setAttribute('aria-hidden','true');
+    (function(){
+        // Invert Timer controller: repeatedly toggles the inverted display at a chosen interval
+        const menu = document.getElementById('invertTimerMenu');
+        const toggle = document.getElementById('invertTimerToggle');
+        const content = document.getElementById('invertTimerMenuContent');
+        if(!menu || !toggle || !content) return;
+
+        let timerId = 0;
+        const KEY = '__invertTimerMs';
+
+        function expand(){ menu.classList.add('expanded'); toggle.setAttribute('aria-expanded','true'); content.setAttribute('aria-hidden','false'); }
+        function collapse(){ menu.classList.remove('expanded'); toggle.setAttribute('aria-expanded','false'); content.setAttribute('aria-hidden','true'); }
+
+        function setTimer(ms){
+            try{ if(timerId){ clearInterval(timerId); timerId = 0; } }catch{}
+            try{ localStorage.setItem(KEY, String(ms||0)); }catch{}
+            // Visual feedback on the small toggle (title reflects current rate)
+            try{ toggle.title = ms ? `Auto-flip every ${(ms/1000).toFixed(ms<1000?1:0)}s` : 'Set auto-flip speed'; }catch{}
+            if(ms && ms > 0){
+                timerId = setInterval(()=>{
+                    try{
+                        // Use the official button click to ensure overlay is created/removed correctly
+                        const btn = document.getElementById('enableLightModeBtn');
+                        if(btn){ btn.click(); }
+                    }catch(e){}
+                }, ms);
+            }
+        }
+
+        // wire expand/collapse
+        toggle.addEventListener('click', (e)=>{ e.preventDefault(); if(menu.classList.contains('expanded')) collapse(); else expand(); });
+
+        // New compact input UI
+        const valInput = document.getElementById('invertTimerValue');
+        const unitSel = document.getElementById('invertTimerUnit');
+        const applyBtn = document.getElementById('invertTimerApply');
+
+        function applyFromInputs(){
+            let n = parseFloat(valInput && valInput.value || '0');
+            if(!isFinite(n) || n < 0) n = 0;
+            const unit = (unitSel && unitSel.value) || 's';
+            const ms = unit === 'ms' ? Math.round(n) : Math.round(n * 1000);
+            setTimer(ms);
+            collapse();
+            try{ toggle.focus(); }catch{}
+        }
+
+        if(applyBtn) applyBtn.addEventListener('click', (e)=>{ e.preventDefault(); applyFromInputs(); });
+        if(valInput) valInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyFromInputs(); } });
+        if(unitSel) unitSel.addEventListener('change', ()=>{ /* no-op until Set is clicked */ });
+
+        // init from saved preference and reflect into inputs
+        try{
+            const saved = parseInt(localStorage.getItem(KEY)||'0',10)||0;
+            if(saved) setTimer(saved); else setTimer(0);
+            // populate inputs from saved value
+            if(valInput && unitSel){
+                if(saved % 1000 === 0){ unitSel.value = 's'; valInput.value = String(saved/1000); }
+                else { unitSel.value = 'ms'; valInput.value = String(saved); }
+            }
+        }catch{}
+    })();
             toggle.textContent = '+';
         }
         toggle.addEventListener('click', ()=>{ menu.classList.contains('expanded') ? collapse() : expand(); });
@@ -5187,7 +5286,9 @@ ANSWER KEY
     body.light-mode-active .choice.correct,
     body.light-mode-active .choice.wrong{
         position: relative;
-        z-index: 2147483647; /* above #lightModeOverlay (2147483646) */
+        /* keep the choice container BELOW the global invert overlay so its contents are inverted,
+           then we selectively double-invert the green/red indicator pseudo-element only. */
+        z-index: 2147483644; /* below #lightModeOverlay (2147483646) */
         /* ensure no filter is applied to the element itself */
         -webkit-filter: none !important;
         filter: none !important;
@@ -5195,9 +5296,41 @@ ANSWER KEY
 
     body.light-mode-active .choice.correct::after,
     body.light-mode-active .choice.wrong::after{
-        z-index: 2147483648; /* sit above the choice container */
-        -webkit-filter: none !important;
-        filter: none !important;
+        /* keep the indicator just under the overlay and double-invert it so it renders true green/red */
+        z-index: 2147483645; /* below overlay (2147483646), above base content */
+        -webkit-filter: invert(1) !important;
+        filter: invert(1) !important;
+    }
+
+    /* Fix inverted-mode background tint: when inverted display is active, we neutralize the
+       base element background (so it doesn't get color-inverted) and paint the intended
+       green/red background via a ::before layer that is also double-inverted. This keeps
+       the inside fill color consistent with the outline (true green/red) in inverted view. */
+    body.light-mode-active .choice.correct,
+    body.light-mode-active .choice.wrong{
+        background: transparent !important; /* avoid inverted base gradient */
+    }
+    body.light-mode-active .choice.correct::before,
+    body.light-mode-active .choice.wrong::before{
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        pointer-events: none;
+        z-index: 2147483644; /* under the outline (::after), above base content */
+        /* Apply the same gradients as normal mode, but double-invert to cancel the global invert */
+    }
+    body.light-mode-active .choice.correct::before{
+        /* Light-theme friendly green fill */
+        background: linear-gradient(180deg, rgba(188, 245, 212, .65), rgba(152, 234, 190, .55));
+        -webkit-filter: invert(1) !important;
+        filter: invert(1) !important;
+    }
+    body.light-mode-active .choice.wrong::before{
+        /* Light-theme friendly red fill */
+        background: linear-gradient(180deg, rgba(255, 214, 214, .65), rgba(250, 190, 190, .55));
+        -webkit-filter: invert(1) !important;
+        filter: invert(1) !important;
     }
 
     /* Keep the inner tag/label content above the pseudo-element so text/icons remain readable */
