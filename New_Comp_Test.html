@@ -1161,12 +1161,12 @@
                             /* If supported, gently blend brand button colors */
                             background: linear-gradient(180deg, color-mix(in srgb, var(--btnTop) 70%, transparent), color-mix(in srgb, var(--btnBottom) 70%, transparent));
                             box-shadow: var(--depth); }
-                .boot-ascii{ text-align:center; margin: 0 0 10px; overflow: hidden; }
+                .boot-ascii{ text-align:center; margin: 0 0 4px; overflow: hidden; }
                 .boot-ascii pre{ display:inline-block; width:max-content; min-width:max-content; max-width:100%; margin:0; padding:0; color: var(--ink); white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(10px, 1.8vw, 18px); line-height: 1.03; letter-spacing: 0; text-shadow: 0 1px 0 rgba(0,0,0,.35); overflow: hidden; transform-origin: left top; }
                 /* Slightly reduce bottom spacing under the big ASCII title to make room for animation */
                 .boot-ascii pre{ display:inline-block; width:max-content; min-width:max-content; max-width:100%; margin:0 0 6px 0; padding:0; color: var(--ink); white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(10px, 1.8vw, 18px); line-height: 1.03; letter-spacing: 0; text-shadow: 0 1px 0 rgba(0,0,0,.35); overflow: hidden; transform-origin: left top; }
                 .boot-ascii pre::-webkit-scrollbar{ width:0; height:0 }
-            .boot-sub{ color: var(--muted); font-size: clamp(12px, 3.4vw, 14px); margin-top: 10px; min-height: 1.4em; }
+            .boot-sub{ color: var(--muted); font-size: clamp(12px, 3.4vw, 14px); margin-top: 18px; min-height: 1.4em; }
             .boot-phrase{ color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(12px, 3.2vw, 16px); line-height: 1.35; min-height: 2.2em; opacity: 0; transition: opacity .35s ease; margin-top: 8px; white-space: normal; }
             .boot-phrase.show{ opacity: 1; }
             .spinner.lg{ width:28px; height:28px; border-width:3px; margin: 10px auto 0; display:inline-block }
@@ -1465,7 +1465,13 @@
 </style>
     <style>
         /* Bottom-left Ambient Radio Player */
-    #radioPlayer{ --rpClockGap: 18px; position:fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom) + var(--rpRaise, 0px)); z-index:180; width: 320px; max-width: 92vw; display:flex; flex-direction: column; gap:8px; padding:10px 12px; box-sizing:border-box;
+    #radioPlayer{ --rpClockGap: 18px; position:fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom) + var(--rpRaise, 0px)); z-index:2200; width: 320px; max-width: 92vw; display:flex; flex-direction: column; gap:8px; padding:10px 12px; box-sizing:border-box;
+        /* Ensure the radio player paints above sticky notes and doesn't affect layout
+           by creating a local stacking context and promoting to its own layer. */
+        isolation: isolate;
+        will-change: transform, opacity;
+        transform: translateZ(0);
+        pointer-events: auto;
             background: linear-gradient(180deg, rgba(16,24,38,.9), rgba(10,16,28,.85)); border: 1px solid var(--btnBorder); border-radius: 14px; box-shadow: var(--depth); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
         }
     #radioPlayer .rp-btn{ appearance:none; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; cursor:pointer; line-height:1 }
@@ -2033,7 +2039,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         if(genreSel && genreSel.value === 'custom'){
                             setNowText('Custom station not set (click ⚙︎)');
                         } else {
-                            setNowText('No station selected — choose a genre or add a custom station (⚙︎).');
+                            setNowText('No station selected — add a custom station (⚙︎).');
                         }
                         return;
                     }
@@ -2936,10 +2942,80 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <!-- Left-side single magnet tab (shares clip-slot behavior; appears after rail so indices 0..3 stay stable) -->
     <div id="leftMagnet" class="clip-slot" data-slot="4" title="Left magnet tab (pin a note here)"></div>
     <div id="leftTabHoverzone" class="left-tab-hoverzone" aria-hidden="true"></div>
-    <button id="leftTabResizer" class="left-tab-resizer" aria-label="Resize left magnet tab" title="Drag to resize left magnet width" aria-controls="leftMagnet" data-min="180" data-max="520"></button>
+        <button id="leftTabResizer" class="left-tab-resizer" aria-label="Resize left magnet tab" title="Drag to resize left magnet width" aria-controls="leftMagnet" data-min="180" data-max="520"></button>
+
+            <!-- Flip-clock digit card styling (boxes per digit with flip cover effect) -->
+        <style id="bootFlipCardStyles">
+            /* Scope to boot ASCII host so we don't affect other digits */
+                #bootAsciiAnim{ display:block; overflow:visible; min-width: 260px; margin: 2px auto; }
+                #bootAsciiAnim .digits{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:nowrap }
+            #bootAsciiAnim .digit{
+                position:relative;
+                display:inline-flex; align-items:center; justify-content:center;
+                    flex:0 0 auto;
+                    width: 44px; height: 56px; /* smaller card so it never overlaps subtext */
+                    font-size: 28px; line-height: 1; letter-spacing: .04em;
+                    min-width: 40px; /* ensure visible box even with narrow glyphs */
+                    padding:0;
+                border-radius:8px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.08);
+                box-shadow: inset 0 -1px 0 rgba(255,255,255,0.06), 0 10px 28px rgba(0,0,0,0.35);
+                overflow:hidden;
+                backface-visibility: hidden;
+                transform-style: preserve-3d;
+                -webkit-font-smoothing: antialiased;
+                text-rendering: geometricPrecision;
+                will-change: transform;
+                transition: background 160ms ease, border-color 160ms ease;
+            }
+            /* Ancient glyphs appear inside the same card */
+            #bootAsciiAnim .digit.ancient{ background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14) }
+
+                        /* Split-flap illusion: we only show flaps during a flip (class .splitting) */
+                        #bootAsciiAnim .digit::before, #bootAsciiAnim .digit::after{
+                            position:absolute; left:0; right:0; display:flex; align-items:center; justify-content:center;
+                            font: inherit; color: inherit; letter-spacing: inherit;
+                            background: rgba(10,10,20,0.25);
+                            border-top: 1px solid rgba(255,255,255,0.08);
+                            border-bottom: 1px solid rgba(0,0,0,0.35);
+                            pointer-events:none; backface-visibility:hidden; transform-style:preserve-3d; opacity:0;
+                        }
+                        /* top flap shows current value at flip start */
+                        #bootAsciiAnim .digit.splitting::before{
+                            content: attr(data-top);
+                            top:0; height:50%;
+                            transform-origin: bottom center;
+                            transform: perspective(500px) rotateX(0deg);
+                            overflow:hidden; opacity:1;
+                        }
+                        /* bottom flap initially shows current; later we swap content to next and flip it in */
+                        #bootAsciiAnim .digit.splitting::after{
+                            content: attr(data-bottom);
+                            bottom:0; height:50%;
+                            transform-origin: top center;
+                            transform: perspective(500px) rotateX(90deg);
+                            overflow:hidden; opacity:1;
+                            box-shadow: 0 -8px 18px rgba(0,0,0,0.35);
+                        }
+                        /* Hide the base text while flaps are active so things don't look doubled */
+                        #bootAsciiAnim .digit.splitting{ color: transparent; }
+                        /* Stage 1: top flips up (old value) */
+                        #bootAsciiAnim .digit.flip2::before{ animation: topFlipOut 160ms ease forwards; }
+                        /* Stage 2: after we switch data-bottom to the next value, flip it in */
+                        #bootAsciiAnim .digit.bottomIn::after{ animation: bottomFlipIn 220ms ease forwards; }
+                @keyframes topFlipOut{
+                    0%{ transform: perspective(500px) rotateX(0deg); }
+                    100%{ transform: perspective(500px) rotateX(-90deg); }
+                }
+                @keyframes bottomFlipIn{
+                    0%{ transform: perspective(500px) rotateX(90deg); }
+                    100%{ transform: perspective(500px) rotateX(0deg); }
+                }
+        </style>
 
 
-        <script>
+    <script>
             // Boot overlay controller: cycles phrases, then fades into the app
                             (function(){
                                 // Only show boot overlay on initial page load (per-tab)
@@ -2967,7 +3043,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     var currentSecs = START_SECS;
                     var inGlitch = false;
                     var nextGlitchTs = Date.now() + 9500; // placeholder; start() will align with cycle end
-                    var TICK = 120; // snappier tick for more responsive flips
+                    var TICK = 80; // faster tick for more responsive flips
                     // Only the specified symbols
                     var GLYPH_SET = ['𓇋','𓎛','𓄿','𓏏','𓌙'];
 
@@ -3016,12 +3092,33 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                 // If orderMap provided, place earlier items slightly earlier
                                 var extra = 0;
                                 if(orderMap){ var pos = orderMap.indexOf(idx); if(pos>=0) extra = pos*8; }
-                                try{ d.classList.add('flip'); }catch(e){}
+                                // Prepare split-flap: start with current value on both halves
+                                try{
+                                    d.setAttribute('data-top', cur[idx]);
+                                    d.setAttribute('data-bottom', cur[idx]);
+                                    d.classList.add('splitting');
+                                    d.classList.remove('ancient');
+                                }catch(e){}
+                                // Start split-flap animation; then swap bottom content to next and flip it in
                                 setTimeout(function(){
-                                    // Abort any numeric update if we're currently showing the glyph glitch
-                                    if(inGlitch) return;
-                                    try{ d.textContent = target[idx]; d.classList.remove('ancient'); }catch(e){}
-                                    setTimeout(function(){ try{ d.classList.remove('flip'); }catch(e){} }, 120);
+                                    if(inGlitch) return; // don't fight the glyph flash
+                                    try{ d.classList.add('flip2'); }catch(e){}
+                                    // After top flap lifts, switch bottom to the next value and flip it in
+                                    setTimeout(function(){
+                                        if(inGlitch) return;
+                                        try{
+                                            d.setAttribute('data-bottom', target[idx]);
+                                            d.classList.add('bottomIn');
+                                        }catch(e){}
+                                        // After bottom finishes, commit the new text and clear classes
+                                        setTimeout(function(){
+                                            if(inGlitch) return;
+                                            try{
+                                                d.textContent = target[idx];
+                                                d.classList.remove('flip2','bottomIn','splitting');
+                                            }catch(e){}
+                                        }, 240);
+                                    }, 160);
                                 }, baseDelay + extra);
                             })(i);
                         }
@@ -3039,27 +3136,71 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     var tickAcc = 0;
                     var lastTickTs = Date.now();
                     var secondToggle = false; // for every-other-second small jump
-                    // 10-second cycle controls: every 10s trigger an accelerated flip phase
+                    // Cycle controls: base cycle (will be adapted to popup duration in start())
                     var CYCLE_MS = 10000;
-                    // Global speed multiplier for the countdown (1 = real-time, 4 = 4x faster)
-                    var SPEED_MULT = 4;
+                    // Global speed multiplier for the countdown (1 = real-time). Will be computed in start() based on `total` so the countdown reaches zero before popup ends.
+                    var SPEED_MULT = 1;
                     var accelUntil = 0;     // timestamp until acceleration applies
-                    var accelFactor = 1;    // 1 = normal, 3-4 = accelerated
+                    var accelFactor = 1;    // 1 = normal, >1 = accelerated
                     var viewHoldUntil = 0;  // timestamp to hold a randomly lowered number for ~2s
                     var _cycleTimerId = null;
-                    function toGlyphs(){
-                        // Immediately set all five slots to the glyphs to avoid mixed numeric/glyph states.
+                    var cyclesSinceGlitch = 0; // count cycles to defer glyphs until we've advanced
+                    // Strict cycle scheduling for 10s loop + glyph linger
+                    var GLYPH_LINGER_MS = 2000; // show hieroglyphs ~2s near cycle end
+                    try{ window.__bootGlyphLingerMs = GLYPH_LINGER_MS; }catch(e){}
+                    // Timestamps
+                    var overallStartTs = Date.now(); // marks beginning of the boot animation (used for adaptive speed)
+                    var cycleStartTs = overallStartTs;
+                    var finalGlyphTs = 0; // epoch ms when final hieroglyphs should appear
+                    var shownFinalGlyph = false;
+                    var nextStepTs = 0; // next jump update (stepBase-derived)
+                    var glitchEndTs = 0; // when to end glyph display
+                    // Only show glyphs when explicitly allowed (force=true) or when the final glyph time has arrived.
+                    // This prevents accidental mid-cycle flashes caused by stray calls.
+                    // Synchronized split-flap flip to the ancient glyphs and hold for lingerMs (ms).
+                    // If `force` is false, only allow the glyphs when finalGlyphTs has passed.
+                    function toGlyphs(force, lingerMs){
+                        try{
+                            var now = Date.now();
+                            if(!force && finalGlyphTs && now < finalGlyphTs) return;
+                        }catch(e){}
                         var sp = spans(); if(!sp || sp.length !== 5){ sp = ensureStructure(fmtFiveFromSecs(currentSecs)); }
                         if(!sp) return;
+                        // Prepare top/bottom with current values and start splitting for all digits at once
+                        var cur = Array.prototype.map.call(sp, function(s){ return s.textContent || ' '; });
                         for(var i=0;i<5;i++){
                             try{
-                                sp[i].textContent = GLYPH_SET[i] || ' ';
-                                sp[i].classList.add('ancient');
-                                // small flip animation kickoff
-                                sp[i].classList.add('flip');
-                                (function(node){ setTimeout(function(){ try{ node.classList.remove('flip'); }catch(e){} }, 140); })(sp[i]);
+                                sp[i].setAttribute('data-top', cur[i]);
+                                sp[i].setAttribute('data-bottom', cur[i]);
+                                sp[i].classList.add('splitting');
+                                sp[i].classList.remove('ancient');
                             }catch(e){}
                         }
+                        // Kick top flap out for all digits together (stage 1)
+                        setTimeout(function(){
+                            for(var i=0;i<5;i++){ try{ sp[i].classList.add('flip2'); }catch(e){} }
+                        }, 20);
+                        // After top flip completes, swap bottom content to glyphs and flip in (stage 2)
+                        setTimeout(function(){
+                            for(var i=0;i<5;i++){
+                                try{
+                                    sp[i].setAttribute('data-bottom', GLYPH_SET[i] || ' ');
+                                    sp[i].classList.add('bottomIn');
+                                }catch(e){}
+                            }
+                        }, 200); // slightly after topFlipOut (160ms)
+                        // After bottom flip finishes, commit glyphs and leave them visible (ancient)
+                        setTimeout(function(){
+                            for(var i=0;i<5;i++){
+                                try{
+                                    sp[i].textContent = GLYPH_SET[i] || ' ';
+                                    sp[i].classList.remove('flip2','bottomIn','splitting');
+                                    sp[i].classList.add('ancient');
+                                }catch(e){}
+                            }
+                            // Mark inGlitch and set end timestamp
+                            try{ inGlitch = true; glitchEndTs = Date.now() + (typeof lingerMs === 'number' ? Math.max(200, lingerMs) : GLYPH_LINGER_MS); }catch(e){}
+                        }, 460); // 200 + 260ms ~ bottomFlipIn duration
                     }
                     function resetToSeedRandom(){
                         var t = fmtFiveFromSecs(START_SECS); // "10800"
@@ -3070,88 +3211,118 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     function tick(){
                         try{
                             var now = Date.now();
-                            // If we're in a glyph glitch, do nothing until it finishes
-                            if(inGlitch){ lastTickTs = now; return; }
-                            // If we're holding a lower-number view, don't decrement until the hold expires
-                            if(now < viewHoldUntil){ lastTickTs = now; return; }
-                            var elapsed = now - lastTickTs; lastTickTs = now;
-                            tickAcc += elapsed;
-                            // Handle scheduled glyph glitches first
-                            if(now >= nextGlitchTs){
-                                inGlitch = true;
-                                toGlyphs();
-                                setTimeout(function(){
-                                    // After glyphs, reset to the seed value as requested
-                                    currentSecs = START_SECS;
-                                    updateDigits(fmtFiveFromSecs(currentSecs));
-                                    // schedule next glitch aligned with cycle end
-                                    nextGlitchTs = Date.now() + (CYCLE_MS - 150);
+                            // If currently showing glyphs, end after linger interval, then reset cycle
+                            if(inGlitch){
+                                if(now >= glitchEndTs){
                                     inGlitch = false;
-                                }, 600);
+                                    // Recalculate currentSecs from overall elapsed so countdown continues smoothly
+                                    var elapsedRealAfter = Math.floor((now - overallStartTs) / 1000);
+                                    var virtualDecAfter = elapsedRealAfter * SPEED_MULT;
+                                    currentSecs = Math.max(0, START_SECS - virtualDecAfter);
+                                    updateDigits(fmtFiveFromSecs(currentSecs));
+                                    // start a fresh cycle window for gating next glitch
+                                    cycleStartTs = now;
+                                    nextGlitchTs = cycleStartTs + Math.max( Math.min(CYCLE_MS - GLYPH_LINGER_MS, CYCLE_MS - 200), 200 );
+                                    var stepBaseAfter = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
+                                    nextStepTs = now + stepBaseAfter + Math.floor(Math.random() * Math.max(1, Math.floor(stepBaseAfter / 2)));
+                                    lastTickTs = now; tickAcc = 0; secondToggle = false;
+                                }
                                 return;
                             }
-                            // Consume accumulated time in 1s steps to make the countdown feel like real seconds
-                            var changed = false;
-                            while(tickAcc >= 1000){
-                                tickAcc -= 1000;
-                                secondToggle = !secondToggle;
-                                // Base decrement is 1 second; on every-other-second, make a small "flip-ahead" to bias toward zero
-                                var dec = 1;
-                                if(secondToggle && Math.random() < 0.6){ dec += 1 + Math.floor(Math.random()*2); }
-                                // Apply global speed multiplier (user requested 4x faster)
-                                if(typeof SPEED_MULT !== 'undefined' && SPEED_MULT > 1){ dec = Math.floor(dec * SPEED_MULT); }
-                                // Apply acceleration factor during cycle window (3-4x faster)
-                                if(now < accelUntil && accelFactor > 1){ dec = Math.floor(dec * accelFactor); }
-                                currentSecs = Math.max(0, currentSecs - dec);
-                                changed = true;
+                            // Only show hieroglyphs at the final reserved time (derived from popup duration)
+                            if(!shownFinalGlyph && finalGlyphTs && now >= finalGlyphTs){
+                                shownFinalGlyph = true;
+                                // Flip all glyphs synchronously and hold for GLYPH_LINGER_MS
+                                toGlyphs(true, GLYPH_LINGER_MS);
+                                // Final state: stop all further ticking so nothing flips back to numbers
+                                try{ if(_bootAnimId){ clearInterval(_bootAnimId); _bootAnimId = null; } }catch(e){}
+                                try{ if(_cycleTimerId){ clearInterval(_cycleTimerId); _cycleTimerId = null; } }catch(e){}
+                                return;
                             }
-                            // Occasionally perform a larger "catch-up" jump (~10 minutes) but rare
-                            if(Math.random() < 0.06 && currentSecs > 900){
-                                var jump = 600 + Math.floor(Math.random()*181); // 600–780s (~10–13min)
-                                currentSecs = Math.max(0, currentSecs - jump);
-                                changed = true;
+                            // Update visible time every ~0.9–1.1s using accelerated scale (50×)
+                            if(nextStepTs === 0){ var stepBase = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8)); nextStepTs = now + stepBase + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase/2))); }
+                            if(now >= nextStepTs){
+                                // Use overall elapsed time since the boot animation started so the virtual countdown scales to the full popup duration
+                                var elapsedReal = Math.floor((now - overallStartTs) / 1000); // seconds since boot start
+                                var virtualDec = elapsedReal * SPEED_MULT; // accelerated seconds to subtract
+                                var newSecs = Math.max(0, START_SECS - virtualDec);
+                                if(newSecs !== currentSecs){
+                                    currentSecs = newSecs;
+                                    updateDigits(fmtFiveFromSecs(currentSecs));
+                                }
+                                var stepBase2 = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
+                                nextStepTs = now + stepBase2 + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase2/2)));
                             }
-                            if(changed){ updateDigits(fmtFiveFromSecs(currentSecs)); }
                         }catch(e){}
                     }
                     function _cycleKick(){
                         try{
-                            // Start a short accelerated phase (3-4x) for ~1.5s
-                            accelFactor = 3 + Math.floor(Math.random()*2); // 3 or 4
-                            accelUntil = Date.now() + 1500;
-                            // Pick a random lower number to display briefly (~2s)
+                            // Count this cycle (used to defer glyph glitches until we've made progress)
+                            cyclesSinceGlitch++;
+                            // Start a short accelerated phase (stronger: 6-8x) for ~2.5s
+                            accelFactor = 6 + Math.floor(Math.random()*3); // 6,7,8
+                            accelUntil = Date.now() + 2500;
+                            // Apply a larger proportional reduction to make meaningful progress each cycle
                             if(currentSecs > 10){
-                                // lower by a value up to roughly half of the remaining (but at least a few seconds)
-                                var maxLower = Math.min(Math.floor(currentSecs/2), 600);
-                                var lowerBy = 5 + Math.floor(Math.random() * Math.max(5, maxLower));
-                                currentSecs = Math.max(0, currentSecs - lowerBy);
+                                // Remove ~15%–40% of remaining time to drive it toward zero faster
+                                var pct = 0.15 + Math.random()*0.25; // 0.15..0.40
+                                var bigReduce = Math.max(5, Math.floor(currentSecs * pct));
+                                currentSecs = Math.max(0, currentSecs - bigReduce);
                             } else {
                                 currentSecs = 0;
                             }
                             updateDigits(fmtFiveFromSecs(currentSecs));
                             // Hold this view briefly so user can read it (~1.2s)
                             viewHoldUntil = Date.now() + 1200;
-                            // schedule next glitch aligned with cycle end
-                            nextGlitchTs = Date.now() + (CYCLE_MS - 150);
+                            // Previously scheduled mid-cycle glitches removed: final glyphs will only be shown at finalGlyphTs
+                            // (no-op here)
                         }catch(e){}
                     }
 
                     function start(){
                         var host = el(); if(!host) return;
-                        currentSecs = START_SECS; inGlitch = false; nextGlitchTs = Date.now() + (CYCLE_MS - 150);
-                        tickAcc = 0; lastTickTs = Date.now(); secondToggle = false;
+                        var now = Date.now();
+                        currentSecs = START_SECS; inGlitch = false;
+                        // mark overall boot start
+                        overallStartTs = now;
+                        // Use outer `total` (ms) to calibrate running time
+                        var TOTAL_LOAD_MS = (typeof total === 'number' && total > 0) ? Math.max(2000, Math.floor(total)) : 30000;
+                        // Reserve final glyph linger window; compute effective run time for counting
+                        var effectiveRunMs = Math.max(800, TOTAL_LOAD_MS - GLYPH_LINGER_MS);
+                        // Compute SPEED_MULT so START_SECS virtual seconds elapse across effectiveRunMs
+                        SPEED_MULT = Math.max(1, Math.ceil(START_SECS / (effectiveRunMs / 1000)));
+
+                        // Fit cycle length to TOTAL_LOAD_MS aiming for ~10s cycles but always at least 2s
+                        var approxCycleCount = Math.max(1, Math.round(TOTAL_LOAD_MS / 10000));
+                        CYCLE_MS = Math.max(2000, Math.floor(TOTAL_LOAD_MS / approxCycleCount));
+
+                        // Initialize cycle timestamps
+                        cycleStartTs = now;
+                        // Compute absolute final glyph time (show hieroglyphs only once at end)
+                        finalGlyphTs = overallStartTs + Math.max(200, Math.floor(TOTAL_LOAD_MS - GLYPH_LINGER_MS));
+                        shownFinalGlyph = false;
+                        // Keep a legacy nextGlitchTs value for compatibility but it will not be used to trigger glyphs
+                        nextGlitchTs = cycleStartTs + Math.max( Math.min(CYCLE_MS - GLYPH_LINGER_MS, CYCLE_MS - 200), 200 );
+                        // Per-step interval scales with cycle length
+                        var stepBase = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
+                        nextStepTs = now + stepBase + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase / 2)));
+
+                        glitchEndTs = 0;
+                        tickAcc = 0; lastTickTs = now; secondToggle = false;
                         ensureStructure(fmtFiveFromSecs(currentSecs));
                         _bootAnimId = setInterval(tick, TICK);
-                        // Start the 10s cycle timer
-                        if(_cycleTimerId) clearInterval(_cycleTimerId);
-                        _cycleTimerId = setInterval(_cycleKick, CYCLE_MS);
+                        // Disable any legacy cycle timer
+                        if(_cycleTimerId) { clearInterval(_cycleTimerId); _cycleTimerId = null; }
                     }
-                    function stop(){
+
+                    // Stop the ticker and show glyphs for an optional linger (ms). If lingerMs omitted, use a short default.
+                    function stop(lingerMs){
                         try{
                             if(_bootAnimId) clearInterval(_bootAnimId); _bootAnimId=null;
                             if(_cycleTimerId) clearInterval(_cycleTimerId); _cycleTimerId = null;
-                            inGlitch = true; toGlyphs();
-                            setTimeout(function(){ resetToSeedRandom(); inGlitch = false; }, 420);
+                            // Immediately switch to glyphs and mark inGlitch; do NOT reset here — reset will occur after overlay removal
+                            var ms = (typeof lingerMs === 'number') ? Math.max(200, lingerMs) : GLYPH_LINGER_MS;
+                            toGlyphs(true, ms);
                         }catch(e){}
                     }
                     startBootAnim = start; stopBootAnim = stop;
@@ -3224,7 +3395,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         pre.style.transform = 'scale(' + scale + ')';
                         var rect = pre.getBoundingClientRect();
                         // Reserve slightly more than measured to avoid clipping bottom row
-                        container.style.height = Math.ceil(rect.height + 10) + 'px';
+                        container.style.height = Math.ceil(rect.height + 2) + 'px';
                         // Keep inline-block to preserve measured scrollWidth behavior
                         pre.style.display = 'inline-block';
                         // Safety pass: if rect width still exceeds container width, correct using rect-based ratio
@@ -3234,7 +3405,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             var scale2 = Math.max(0.1, scale * (cw2 / rw) * 0.98);
                             pre.style.transform = 'scale(' + scale2 + ')';
                             var rect2 = pre.getBoundingClientRect();
-                            container.style.height = Math.ceil(rect2.height + 10) + 'px';
+                            container.style.height = Math.ceil(rect2.height + 2) + 'px';
                             scale = scale2; rect = rect2; // use final values
                         }
                         // Final centering: translateX so the scaled rect is centered inside container
@@ -3277,18 +3448,28 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 function endBoot(){
                     if(!overlay) return;
                     subEl.textContent = 'Ready.';
-                                overlay.classList.add('hidden');
-                                setTimeout(function(){ 
-                                    if(overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); }
-                             overlay = null; 
-                                                         try{ document.documentElement.classList.remove('booting'); document.body.classList.remove('booting'); }catch(e){}
-                                                         // Restore sticky interactivity now that boot is finished
-                                                         try{ if(typeof setStickyInert === 'function') setStickyInert(false); }catch(e){}
-                                                         // stop ASCII animation
-                                                         try{ if(typeof stopBootAnim === 'function') stopBootAnim(); }catch(e){}
-                                                         // After boot ends, ensure sticky notes layout is computed and reflowed
-                                                         try{ if(typeof layoutAllSlots === 'function') { layoutAllSlots(); } }catch(e){}
-                                }, 650);
+                    try{
+                        // Use a safe, globally exposed linger value so we don't ReferenceError on an inner-scope var
+                        var __linger = (typeof window!== 'undefined' && typeof window.__bootGlyphLingerMs === 'number') ? window.__bootGlyphLingerMs : 2000;
+                        // Show hieroglyphs for the configured linger window before starting the overlay fade
+                        if(typeof stopBootAnim === 'function') stopBootAnim(__linger);
+                    }catch(e){}
+                    // Start hiding the overlay after the glyph linger completes so users see glyphs 1-2s before disappearance
+                    var __linger2 = (typeof window!== 'undefined' && typeof window.__bootGlyphLingerMs === 'number') ? window.__bootGlyphLingerMs : 2000;
+                    setTimeout(function(){
+                        try{ overlay.classList.add('hidden'); }catch(e){}
+                        // remove from DOM after the CSS hide transition (keep previous 650ms fallback)
+                        setTimeout(function(){
+                            try{ if(overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); } }catch(e){}
+                            overlay = null;
+                            try{ document.documentElement.classList.remove('booting'); document.body.classList.remove('booting'); }catch(e){}
+                            try{ if(typeof setStickyInert === 'function') setStickyInert(false); }catch(e){}
+                            // After boot ends, ensure sticky notes layout is computed and reflowed
+                            try{ if(typeof layoutAllSlots === 'function') { layoutAllSlots(); } }catch(e){}
+                            // Reset the numeric display back to seed once overlay is fully removed
+                            try{ resetToSeedRandom(); inGlitch = false; shownFinalGlyph = false; }catch(e){}
+                        }, 650);
+                    }, __linger2);
                 }
 
                 // Start sequence after a brief tick so initial paint happens
@@ -13051,23 +13232,58 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                         const cRect = controls.getBoundingClientRect();
                         const rRect = radio.getBoundingClientRect();
                         const gapTop = 12, gapBottom = 12;
-                        const top = Math.round(cRect.bottom + gapTop);
-                        const bottom = Math.round(rRect.top - gapBottom);
-                        const h = Math.max(0, bottom - top);
-                        // Show only if there is reasonable space; otherwise hide
-                        if(h >= 120){
-                            leftTab.style.top = top + 'px';
-                            leftTab.style.height = h + 'px';
-                            leftTab.style.display = '';
-                            // Center resizer/hoverzone on this span
-                            const cy = Math.round(top + h/2);
-                            if(hzL){ hzL.style.top = cy + 'px'; }
-                            if(resL){ resL.style.top = cy + 'px'; }
-                        } else {
-                            leftTab.style.display = 'none';
-                            if(hzL) hzL.style.top = '50%';
-                            if(resL) resL.style.top = '50%';
+                        const initialTop = Math.round(cRect.bottom + gapTop);
+
+                        // The left magnet's height is independent of the radio module. Record
+                        // an initial fixed height (from CSS or current offset) on first run and
+                        // preserve it thereafter so the radio cannot affect the tab height.
+                        if(!leftTab.dataset.initialH){
+                            const cs = getComputedStyle(leftTab);
+                            const hFromCss = parseInt(cs.getPropertyValue('height')) || leftTab.offsetHeight || 450;
+                            leftTab.dataset.initialH = String(Math.max(450, hFromCss));
                         }
+                        const initialH = parseInt(leftTab.dataset.initialH, 10) || 240;
+
+                        // Compute a height that always ends at the TOP of the HIDDEN radio module,
+                        // independent of whether the radio is currently expanded/collapsed. This
+                        // makes the magnet responsive to zoom changes while remaining stable across
+                        // show/hide toggles.
+                        let desiredH = initialH;
+                        try{
+                            const SEPARATION = 8; // px gap between magnet bottom and hidden radio top
+                            // Determine the hidden/minimized radio height once and cache it
+                            if(!radio.dataset.minH){
+                                let minH = radio.offsetHeight || 0;
+                                try{
+                                    if(!radio.classList.contains('min')){
+                                        radio.classList.add('min');
+                                        minH = radio.offsetHeight || minH;
+                                        radio.classList.remove('min');
+                                    }
+                                }catch{ /* ignore */ }
+                                if(!minH || minH < 40) minH = 72;
+                                radio.dataset.minH = String(Math.round(minH));
+                            }
+                            const radioMinH = parseInt(radio.dataset.minH, 10) || 72;
+                            // Include the radio's dynamic raise (from the ASCII clock) set via --rpRaise
+                            let rpRaise = 0;
+                            try{ const csR = getComputedStyle(radio); const v = csR.getPropertyValue('--rpRaise'); if(v) rpRaise = parseInt(v) || 0; }catch{}
+                            const bottomInset = gapBottom; // matches radio CSS 12px bottom padding
+                            const hiddenRadioTop = Math.round(window.innerHeight - rpRaise - bottomInset - radioMinH);
+                            // Target height so magnet bottom ends at the hidden radio top minus separation
+                            const target = Math.round(hiddenRadioTop - initialTop - SEPARATION);
+                            desiredH = Math.max(120, target);
+                        }catch{ desiredH = Math.max(120, initialH); }
+
+                        // Anchor the top to the controls and apply the responsive height
+                        leftTab.style.top = initialTop + 'px';
+                        leftTab.style.height = desiredH + 'px';
+                        leftTab.style.display = '';
+
+                        // Center resizer/hoverzone on this span
+                        const cy = Math.round(initialTop + desiredH/2);
+                        if(hzL){ hzL.style.top = cy + 'px'; }
+                        if(resL){ resL.style.top = cy + 'px'; }
                     }
                 }catch{}
                 // Keep resizer/hoverzone aligned with current rail width and vertically centered on the rail
