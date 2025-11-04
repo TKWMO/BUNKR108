@@ -271,6 +271,8 @@
             --ink: #e9f0f7;
             --muted: #9fb0c5;
             --panel: #0c1320aa;
+            /* Global, compact spacing for inline/stacked control rows */
+                --control-gap: 4px; /* scaled x1.25 per user request */
             .flex-wrap {
                 flex-wrap: wrap
             }
@@ -726,12 +728,15 @@
         #bgToggles{
             position: fixed;
             left: calc(12px + env(safe-area-inset-left));
-            top: calc(12px + env(safe-area-inset-top) + 64px + var(--topSafeArea)); /* ~capsule height + gap + safe area */
+            /* Use theme capsule height + the unified control gap for consistent spacing */
+            top: calc(12px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 56px) + var(--control-gap));
             z-index: 6; /* above canvas and peers */
-            display:flex; gap:8px; align-items:flex-start; flex-direction: column; /* stack toggles vertically */
+            display:flex; gap: var(--control-gap); align-items:flex-start; flex-direction: column; /* stack toggles vertically */
         }
         @media (max-width: 640px){ .theme-capsule{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea)); } }
-        @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + 72px + var(--topSafeArea)); } }
+        /* On small screens, the orbs are larger; update the capsule height variable and recompute */
+        @media (max-width: 640px){ :root{ --theme-capsule-h: 60px; } }
+        @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 60px) + var(--control-gap)); } }
         .theme-orb{
             --c1: #5aa5ff; --c2: #46d3ff; --c3: #7a66ff; /* default fallbacks */
             --hx: 30%; --hy: 22%; /* specular highlight anchor (moves on hover) */
@@ -756,6 +761,61 @@
     .orb-violet{ --c1:#8b5cf6; --c2:#60a5fa; --c3:#22d3ee }
     .orb-ember { --c1:#ff6b6b; --c2:#f59e0b; --c3:#fb923c }
     .orb-greyscale{ --c1:#d4d4d4; --c2:#9ca3af; --c3:#4b5563 }
+
+    /* Palette editor (minimal, square, movable) */
+    .palette-editor{ position:fixed; width:248px; border-radius:10px; padding:8px; z-index:2147483648; color:var(--ink);
+        background: linear-gradient(180deg, rgba(16,24,38,.94), rgba(10,16,28,.90));
+        border:1px solid rgba(255,255,255,0.06);
+        box-shadow: 0 14px 36px rgba(2,6,12,0.55);
+        -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+        -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+        opacity: 1; transform: translateY(-4px) scale(.99);
+    }
+    /* Remove decorative overlay for a clean, minimal look */
+    .palette-editor::after{ content:none }
+    .palette-editor.hidden{ display:none }
+    /* open/close animation hooks */
+    .palette-editor.pe-anim{ transition: opacity .18s ease, transform .18s ease; will-change: opacity, transform; }
+    .palette-editor.pe-show{ opacity:1; transform: translateY(0) scale(1); }
+
+    .palette-editor .pe-header{ display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px 6px 10px; cursor:default; font-weight:800; letter-spacing:.2px; min-height:34px }
+    .palette-editor .pe-header:active{ cursor:default }
+    .palette-editor .pe-header span{ font-size:13px; color: var(--ink) }
+    .palette-editor .pe-body{ padding:6px 8px }
+    /* prevent accidental double-click selection inside the editor; allow controls to remain interactive */
+    .palette-editor input, .palette-editor button, .palette-editor input[type="color"]{ -webkit-user-select: auto; -moz-user-select: auto; -ms-user-select: auto; user-select: auto }
+    .palette-editor .pe-row{ display:flex; gap:8px; align-items:flex-start; justify-content:space-between }
+    .palette-editor label{ display:inline-flex; flex-direction:column; font-size:12px; gap:6px; align-items:flex-start; color: var(--muted); font-weight:700 }
+    .palette-editor input[type=color]{ width:56px; height:34px; border-radius:8px; padding:2px; cursor:pointer;
+        border:1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 20px rgba(0,0,0,0.35); }
+    .palette-editor input[type=color]::-webkit-color-swatch-wrapper{ padding:2px; border-radius:8px }
+    .palette-editor input[type=color]::-webkit-color-swatch{ border:none; border-radius:8px }
+    .palette-editor input[type=color]:focus{ outline: 2px solid rgba(96,165,250,.35); outline-offset: 2px }
+    .palette-editor .pe-preview{ margin-top:8px; height:46px; border-radius:10px; border:1px solid rgba(255,255,255,0.04);
+        /* reduce inset darkening and soften edges to avoid hard side lines */
+        box-shadow: inset 0 2px 6px rgba(0,0,0,0.32), 0 6px 18px rgba(0,0,0,0.35);
+        background: linear-gradient(90deg, #ddd, #999); position:relative; overflow:hidden }
+    .palette-editor .pe-preview::before{ content:''; position:absolute; left:-20%; right:-20%; top:-60%; height: 120%;
+        background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0)); transform: rotate(12deg); pointer-events:none }
+    .palette-editor .pe-footer{ margin-top:8px; display:flex; justify-content:flex-end }
+    /* Header buttons */
+    #peReset.btn.small{ border-radius:999px; padding:6px 10px; font-size:12px }
+    /* Circle close: ensure perfect centering regardless of font metrics */
+    #peClose.btn.small{
+        width:32px; height:32px; padding:0; border-radius:50%;
+        font-weight:900; font-size:14px; line-height:1; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;
+        /* make it a true circular icon button that matches theme */
+        border: 1px solid var(--btnBorder);
+        background: linear-gradient(180deg, var(--btnTop), var(--btnBottom));
+        color: var(--ink);
+        cursor: pointer;
+        box-shadow: 0 6px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
+        transition: transform .08s ease, filter .12s ease, box-shadow .12s ease;
+    }
+    #peClose.btn.small:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+    #peClose.btn.small:focus{ outline: 2px solid rgba(96,165,250,.35); outline-offset: 2px }
+    @media (max-width:640px){ .palette-editor{ width:92%; left:4% !important; right:auto !important } }
 
     /* Utility classes to replace inline styles */
     .mt-6{ margin-top:6px }
@@ -1568,7 +1628,9 @@
     #radioPlayer .rp-custom .row{ display:flex; gap:8px; align-items:center; margin:6px 0 }
     #radioPlayer .rp-custom label{ width:64px; color: var(--muted); font-size:12px }
     #radioPlayer .rp-custom input, #radioPlayer .rp-custom textarea{ flex:1 1 auto; background:#0c1526; color:var(--ink); border:1px solid var(--btnBorder); border-radius:6px; padding:6px 8px; font-size:12px }
-    #radioPlayer .rp-custom textarea{ min-height:52px; resize:vertical }
+    #radioPlayer .rp-custom textarea{ min-height:28px; max-height:360px; resize:vertical; overflow:hidden; height:auto }
+    /* Autosizing single-line start: when content grows, JS will expand height to fit without showing scrollbars */
+    #radioPlayer .rp-custom textarea.autosize-textarea{ min-height:28px; overflow:hidden; resize:vertical }
     #radioPlayer .rp-custom .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:6px }
     #radioPlayer .rp-hint{ color: var(--muted); font-size:11px; margin-top:4px }
         /* Title row */
@@ -1601,7 +1663,7 @@
             </div>
             <div id="rpCustom" class="rp-custom" aria-hidden="true">
                 <div class="row"><label for="rpCustName">Name</label><input id="rpCustName" type="text" placeholder="My Custom Station" /></div>
-                <div class="row"><label for="rpCustUrls">URLs</label><textarea id="rpCustUrls" placeholder="One or more direct stream URLs (https).\nExample: https://example.com/stream.mp3\nYou can paste multiple, one per line."></textarea></div>
+                <div class="row"><label for="rpCustUrls">URLs</label><textarea id="rpCustUrls" class="autosize-textarea" rows="1" placeholder="One or more direct stream URLs (https).\nExample: https://example.com/stream.mp3\nYou can paste multiple, one per line."></textarea></div>
                 <div class="rp-hint">Requirements: HTTPS direct stream (MP3/AAC), CORS-friendly, no login. Avoid web pages or shortlinks; use the actual .mp3/.aac stream URL.</div>
                 <div class="actions">
                     <button id="rpCustSave" class="rp-btn small">Save</button>
@@ -1673,6 +1735,71 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     }catch(e){}
                 }
                 if(document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(initOutline, 0); else document.addEventListener('DOMContentLoaded', initOutline);
+            })();
+
+            // Also ensure the small Always-toggle and its +/− menu toggle can be elevated
+            // above the focus overlay when hovered, matching the behavior of #enableFocusBtn.
+            (function(){
+                function attachElevate(el){
+                    if(!el) return;
+                    let placeholder = null;
+                    function elevate(){
+                        try{
+                            if(!document.body.classList.contains('focus-mode-active')) return;
+                            if(el.dataset.elevated) return;
+                            const r = el.getBoundingClientRect();
+                            placeholder = document.createElement('div');
+                            placeholder.className = 'focus-btn-placeholder';
+                            placeholder.style.width = r.width + 'px';
+                            placeholder.style.height = r.height + 'px';
+                            placeholder.style.display = getComputedStyle(el).display || 'inline-block';
+                            el.parentNode.insertBefore(placeholder, el);
+                            document.body.appendChild(el);
+                            el.style.position = 'fixed';
+                            el.style.left = Math.round(r.left) + 'px';
+                            el.style.top = Math.round(r.top) + 'px';
+                            el.style.zIndex = '100001';
+                            el.dataset.elevated = '1';
+                        }catch(e){}
+                    }
+                    function restore(){
+                        try{
+                            if(!el.dataset.elevated) return;
+                            if(placeholder && placeholder.parentNode){ placeholder.parentNode.insertBefore(el, placeholder); placeholder.parentNode.removeChild(placeholder); }
+                            placeholder = null;
+                            el.style.position = '';
+                            el.style.left = '';
+                            el.style.top = '';
+                            el.style.zIndex = '';
+                            delete el.dataset.elevated;
+                        }catch(e){}
+                    }
+                    el.addEventListener('mouseenter', elevate);
+                    el.addEventListener('focus', elevate);
+                    el.addEventListener('mouseleave', restore);
+                    el.addEventListener('blur', restore);
+                    window.addEventListener('resize', function(){ try{ if(el.dataset.elevated && placeholder){ const r = placeholder.getBoundingClientRect(); el.style.left = Math.round(r.left) + 'px'; el.style.top = Math.round(r.top) + 'px'; } }catch(e){} });
+                    document.addEventListener('focus-mode-off', restore);
+                }
+                // Ensure attach even if elements are added later dynamically
+                function ensureAttach(id){
+                    try{
+                        const el = document.getElementById(id);
+                        if(el){ attachElevate(el); return; }
+                        // watch for the element being added to the DOM
+                        if(window.MutationObserver){
+                            const mo = new MutationObserver((records, obs)=>{
+                                try{ const found = document.getElementById(id); if(found){ attachElevate(found); obs.disconnect(); } }catch(e){}
+                            });
+                            mo.observe(document.body, { childList:true, subtree:true });
+                        } else {
+                            // fallback: check on DOMContentLoaded
+                            document.addEventListener('DOMContentLoaded', ()=>{ try{ const f = document.getElementById(id); if(f) attachElevate(f); }catch(e){} }, { once:true });
+                        }
+                    }catch(e){}
+                }
+                ensureAttach('focusAlwaysMenuToggle');
+                ensureAttach('alwaysEnableFocusBtn');
             })();
 
             // Keep Flashcards panel visible ONLY when the main setup (main menu) is shown
@@ -1856,6 +1983,27 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 const custUrls = $('rpCustUrls');
                 const custSave = $('rpCustSave');
                 const custClear = $('rpCustClear');
+
+                // Autosize helper for the custom URLs textarea: start single-line and grow vertically
+                function autosizeTextarea(el){
+                    try{
+                        if(!el) return;
+                        // reset to let the browser compute the scrollHeight
+                        el.style.height = 'auto';
+                        // ensure a small minimum (approx a single line)
+                        const sh = Math.max(24, el.scrollHeight || 24);
+                        el.style.height = sh + 'px';
+                    }catch(e){}
+                }
+                if(custUrls){
+                    // ensure the starter attributes/classes are present
+                    custUrls.classList.add('autosize-textarea');
+                    custUrls.setAttribute('rows','1');
+                    // run once to seed initial height
+                    autosizeTextarea(custUrls);
+                    // grow as the user types/pastes
+                    ['input','change','paste'].forEach(ev=> custUrls.addEventListener(ev, ()=> autosizeTextarea(custUrls)));
+                }
                 const hasMS = 'mediaSession' in navigator;
 
                 // YouTube/Twilight integration removed. Stubs and safe placeholders kept for compatibility.
@@ -2329,6 +2477,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             try{
                                 custName.value = (localStorage.getItem(KEY.customName) || localStorage.getItem('rp.yacht.name') || '');
                                 custUrls.value = (localStorage.getItem(KEY.customUrls) || localStorage.getItem('rp.yacht.urls') || '');
+                                // Ensure the textarea height matches any loaded content
+                                try{ autosizeTextarea && autosizeTextarea(custUrls); }catch(e){}
                             }catch{}
                         }
                     });
@@ -3522,7 +3672,24 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         <div class="theme-orb orb-forest" data-theme="forest" title="Forest"></div>
        <div class="theme-orb orb-violet" data-theme="violet" title="Violet"></div>
        <div class="theme-orb orb-ember" data-theme="ember" title="Ember"></div>
-    <div class="theme-orb orb-greyscale" data-theme="greyscale" title="Greyscale"></div>
+    <div class="theme-orb orb-custom" data-theme="Custom" title="Custom (double-click to customize)"></div>
+    </div>
+    <div id="paletteEditor" class="palette-editor hidden" role="dialog" aria-label="Custom palette editor">
+        <div class="pe-header" id="peHeader" tabindex="0">
+            <span>Customize Interface</span>
+            <div style="display:flex; gap:6px; align-items:center">
+                <button id="peReset" class="btn small" title="Reset">Reset</button>
+                <button id="peClose" class="btn small" aria-label="Close">×</button>
+            </div>
+        </div>
+        <div class="pe-body">
+            <div class="pe-row">
+                <label for="peC1">C1<input id="peC1" type="color" /></label>
+                <label for="peC2">C2<input id="peC2" type="color" /></label>
+                <label for="peC3">C3<input id="peC3" type="color" /></label>
+            </div>
+            <div class="pe-preview" id="pePreview" aria-hidden="true"></div>
+        </div>
     </div>
     <div class="mt-8 flex gap-8" id="bgToggles">
     <!-- Group the inverted display controls in a single horizontal row -->
@@ -3550,6 +3717,162 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             </div>
         </div>
     </div>
+    <script>
+    (function(){
+        const KEY = '__custom_orb_greyscale_v1';
+            function toHex(rgb){
+            if(!rgb) return '#999999';
+            rgb = rgb.trim();
+            if(rgb[0] === '#') return rgb;
+            const m = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+            if(m){ const r = parseInt(m[1]), g = parseInt(m[2]), b = parseInt(m[3]); return '#'+((1<<24)+(r<<16)|(g<<8)|b).toString(16).slice(1); }
+            return rgb;
+        }
+
+        // mix two hex colors (linear RGB) by t in [0..1]
+        function mixHex(a,b,t){
+            try{
+                if(!a||!b) return a||b||'#000000';
+                const pa = a.replace('#',''); const pb = b.replace('#','');
+                const na = pa.length===3 ? pa.split('').map(c=>c+c).join('') : pa;
+                const nb = pb.length===3 ? pb.split('').map(c=>c+c).join('') : pb;
+                const ar = parseInt(na.substring(0,2),16), ag = parseInt(na.substring(2,4),16), ab = parseInt(na.substring(4,6),16);
+                const br = parseInt(nb.substring(0,2),16), bg = parseInt(nb.substring(2,4),16), bb = parseInt(nb.substring(4,6),16);
+                const rr = Math.round(ar*(1-t)+br*t); const rg = Math.round(ag*(1-t)+bg*t); const rb = Math.round(ab*(1-t)+bb*t);
+                const toHex2 = (n)=> (n<16? '0'+n.toString(16) : n.toString(16));
+                return '#'+toHex2(rr)+toHex2(rg)+toHex2(rb);
+            }catch(e){ return a; }
+        }
+
+        function makeSmoothGradient(c1,c2,c3){
+            // produce many small blended stops across the strip to avoid banding/seams
+            try{
+                const steps = 18; // even number gives symmetric midpoint
+                const stops = [];
+                for(let i=0;i<=steps;i++){
+                    const t = i / steps; // 0..1
+                    let col;
+                    if(t <= 0.5){ col = mixHex(c1, c2, t * 2); }
+                    else { col = mixHex(c2, c3, (t - 0.5) * 2); }
+                    const pct = (t * 100).toFixed(2).replace(/\.00$/,'') + '%';
+                    stops.push(`${col} ${pct}`);
+                }
+                return `linear-gradient(90deg, ${stops.join(', ')})`;
+            }catch(e){
+                // fallback to simpler multi-stop
+                const a1 = mixHex(c1,c2,0.25);
+                const a2 = mixHex(c1,c2,0.55);
+                const b1 = mixHex(c2,c3,0.45);
+                const b2 = mixHex(c2,c3,0.75);
+                return `linear-gradient(90deg, ${c1} 0%, ${a1} 20%, ${a2} 40%, ${c2} 50%, ${b1} 60%, ${b2} 80%, ${c3} 100%)`;
+            }
+        }
+
+        function readStored(){ try{ const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+        function writeStored(obj){ try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(e){} }
+
+        function init(){
+            // Prefer the explicit custom orb (orb-custom / data-theme="custom") so only it is bound
+            // to the palette editor. Fall back to any greyscale-marked orb, and only as a last resort
+            // pick the first orb to avoid accidental binding to Ocean.
+            let orb = document.querySelector('.theme-orb.orb-custom') || document.querySelector('.theme-orb[data-theme="custom"]');
+            if(!orb) orb = document.querySelector('.theme-orb.orb-greyscale') || document.querySelector('.theme-orb[data-theme="greyscale"]');
+            if(!orb) orb = document.querySelector('.theme-orb');
+            const editor = document.getElementById('paletteEditor');
+            if(!orb || !editor) return;
+            const header = document.getElementById('peHeader');
+            const c1 = document.getElementById('peC1');
+            const c2 = document.getElementById('peC2');
+            const c3 = document.getElementById('peC3');
+            const preview = document.getElementById('pePreview');
+            const closeBtn = document.getElementById('peClose');
+            const resetBtn = document.getElementById('peReset');
+
+            // defaults
+            const defaults = { c1: '#d4d4d4', c2: '#9ca3af', c3: '#4b5563' };
+
+            // apply stored if present
+            const stored = readStored();
+            if(stored && stored.colors){ try{
+                orb.style.setProperty('--c1', stored.colors.c1);
+                orb.style.setProperty('--c2', stored.colors.c2);
+                orb.style.setProperty('--c3', stored.colors.c3);
+                document.documentElement.style.setProperty('--brand', stored.colors.c1);
+                // dye outlines and button borders to match custom palette
+                try{ document.documentElement.style.setProperty('--btnBorder', mixHex(stored.colors.c2, stored.colors.c3, 0.65)); }catch(e){}
+            }catch(e){} }
+
+            function loadInputsFromOrb(){ const cs = getComputedStyle(orb); c1.value = toHex(cs.getPropertyValue('--c1')||defaults.c1); c2.value = toHex(cs.getPropertyValue('--c2')||defaults.c2); c3.value = toHex(cs.getPropertyValue('--c3')||defaults.c3); preview.style.background = makeSmoothGradient(c1.value, c2.value, c3.value); }
+
+            loadInputsFromOrb();
+
+            function hexToRgba(h, a){ try{ if(!h) return `rgba(0,0,0,${a})`; h = h.replace('#',''); if(h.length===3) h = h.split('').map(ch=>ch+ch).join(''); const r = parseInt(h.substring(0,2),16); const g = parseInt(h.substring(2,4),16); const b = parseInt(h.substring(4,6),16); return `rgba(${r}, ${g}, ${b}, ${a})`; }catch(e){ return `rgba(0,0,0,${a})`; } }
+
+            function applyColors(){ try{
+                // update orb pigments
+                orb.style.setProperty('--c1', c1.value);
+                orb.style.setProperty('--c2', c2.value);
+                orb.style.setProperty('--c3', c3.value);
+                // update some commonly-used UI accent variables so the palette affects the wider interface
+                try{ document.documentElement.style.setProperty('--brand', c1.value); }catch(e){}
+                try{ document.documentElement.style.setProperty('--glow1', hexToRgba(c1.value, 0.20)); document.documentElement.style.setProperty('--glow2', hexToRgba(c2.value, 0.14)); document.documentElement.style.setProperty('--glow3', hexToRgba(c3.value, 0.16)); }catch(e){}
+                // attempt to set button gradient endpoints (subtle tint)
+                try{ document.documentElement.style.setProperty('--btnTop', hexToRgba(c1.value, 0.36)); document.documentElement.style.setProperty('--btnBottom', hexToRgba(c2.value, 0.28)); }catch(e){}
+                // set a dyed border color derived from the darker palette stops so outlines follow the custom scheme
+                try{ document.documentElement.style.setProperty('--btnBorder', mixHex(c2.value, c3.value, 0.65)); }catch(e){}
+                preview.style.background = makeSmoothGradient(c1.value, c2.value, c3.value);
+                writeStored({ colors: { c1: c1.value, c2: c2.value, c3: c3.value }, pos: getPos() });
+            }catch(e){} }
+
+            c1.addEventListener('input', applyColors); c2.addEventListener('input', applyColors); c3.addEventListener('input', applyColors);
+
+            // open editor near orb
+            function openEditor(){ try{
+                editor.classList.remove('hidden'); editor.classList.add('pe-anim');
+                // run on next frame to trigger transition
+                requestAnimationFrame(()=> editor.classList.add('pe-show'));
+                loadInputsFromOrb();
+                // Position the editor: prefer any stored position, otherwise place it to the right of the orb.
+                try{
+                    const rect = orb.getBoundingClientRect();
+                    const left = Math.min(window.innerWidth - editor.offsetWidth - 12, Math.max(8, Math.round(rect.right + 8)));
+                    const top = Math.min(window.innerHeight - editor.offsetHeight - 12, Math.max(8, Math.round(rect.top)));
+                    editor.style.left = left + 'px'; editor.style.top = top + 'px';
+                    // restore stored pos if present (preserve original placement across sessions)
+                    const st = readStored(); if(st && st.pos){ try{ if(typeof st.pos.left === 'number') editor.style.left = st.pos.left + 'px'; if(typeof st.pos.top === 'number') editor.style.top = st.pos.top + 'px'; }catch(e){} }
+                }catch(e){}
+            }catch(e){} }
+
+            function closeEditor(){ try{
+                // animate out, then hide
+                editor.classList.add('pe-anim'); editor.classList.remove('pe-show');
+                const onEnd = function(ev){ try{ if(ev && ev.target !== editor) return; editor.removeEventListener('transitionend', onEnd); editor.classList.add('hidden'); }catch(e){} };
+                editor.addEventListener('transitionend', onEnd);
+                // fallback timeout
+                setTimeout(()=>{ try{ if(!editor.classList.contains('pe-show')) editor.classList.add('hidden'); }catch(e){} }, 240);
+            }catch(e){} }
+
+            // allow closing via global Escape key regardless of focus
+            document.addEventListener('keydown', (ev)=>{ try{ if(ev.key === 'Escape' && editor && !editor.classList.contains('hidden')){ closeEditor(); } }catch(e){} });
+
+            // Open the palette editor only on a double-click to avoid accidental popups
+            orb.addEventListener('dblclick', (e)=>{ e.preventDefault(); openEditor(); });
+            closeBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeEditor(); });
+
+            resetBtn.addEventListener('click', (e)=>{ e.preventDefault(); c1.value = defaults.c1; c2.value = defaults.c2; c3.value = defaults.c3; applyColors(); });
+
+            // Dragging of the palette editor has been disabled — the editor is fixed in place.
+            function getPos(){ try{ return { left: parseFloat(editor.style.left)||0, top: parseFloat(editor.style.top)||0 }; }catch(e){ return { left:0, top:0 }; } }
+
+            // ensure accessible keyboard close
+            header.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape'){ closeEditor(); } });
+
+            // on load, if stored pos exists and editor visible (hidden by default) do nothing
+        }
+
+        if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    })();
+    </script>
     <button id="asciiBgToggle" class="btn pill" title="Toggle animated ASCII background">Turn off animated background</button>
             <div class="news-inline">
                 <div class="news-controls-vertical">
@@ -3566,19 +3889,30 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                 </div>
                         </div>
                     </div>
-                    <button id="enableFocusBtn" class="btn pill" title="Enable focus mode">Enable focus mode</button>
+                    <div id="focusInlineContainer" class="focus-inline">
+                        <button id="enableFocusBtn" class="btn pill" title="Enable focus mode">Enable focus mode</button>
+                        <!-- Side menu for Always Enable Focus Mode (mirrors news side-menu behavior) -->
+                        <div id="focusAlwaysMenu" class="news-side-menu" aria-hidden="false">
+                            <button id="focusAlwaysMenuToggle" class="btn pill news-menu-toggle" aria-expanded="false" aria-controls="focusAlwaysMenuContent" title="Always enable focus options">+</button>
+                            <div id="focusAlwaysMenuContent" class="news-side-menu-content" role="menu" aria-hidden="true">
+                                <div class="news-side-pill" role="presentation">
+                                    <button id="alwaysEnableFocusBtn" class="btn small" role="menuitem">Always Enable Focus Mode</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
     </div>
     <style id="newsSideMenuStyles">
     /* Side-extending pill menu (left edge) */
     /* place inline next to other controls (e.g. #newsToggle) so it aligns horizontally */
-    .news-side-menu{ position:relative; left:auto; top:auto; transform:none; display:inline-flex; align-items:center; gap:8px; pointer-events:auto }
+    .news-side-menu{ position:relative; left:auto; top:auto; transform:none; display:inline-flex; align-items:center; gap:var(--control-gap); pointer-events:auto }
      /* Make the small plus toggle visually match the nearby Disable news button (size + vertical alignment)
          This is intentionally narrow and only updates the toggle itself so overall layout is unchanged. */
-     .news-menu-toggle{ border-radius:999px; border:1px solid rgba(255,255,255,0.06); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:var(--ink); font-size:14px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:10px 14px; line-height:1; align-self:center; margin:0 }
+    .news-menu-toggle{ border-radius:999px; border:1px solid rgba(255,255,255,0.06); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color:var(--ink); font-size:14px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:10px 14px; line-height:1; align-self:center; margin:0; /* ensure breathing room from neighbors so outline doesn't overlap */ margin-left: var(--control-gap); margin-right: var(--control-gap); }
     .news-side-menu-content{ transform-origin:left center; transform:scaleX(0); transition:transform 220ms cubic-bezier(.2,.9,.2,1), opacity 180ms ease; opacity:0; display:flex; align-items:center; }
     .news-side-menu.expanded .news-side-menu-content{ transform:scaleX(1); opacity:1 }
-    .news-side-pill{ display:flex; flex-direction:row; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+    .news-side-pill{ display:flex; flex-direction:row; gap:var(--control-gap); align-items:center; padding:6px 10px; border-radius:999px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
     /* Blur and deepen shadow beneath side menus for better contrast */
     #invertTimerMenu .news-side-menu-content,
     #newsSideMenu .news-side-menu-content{ -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
@@ -3597,13 +3931,23 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     .news-menu-toggle:focus, .news-side-pill .btn:focus{ outline: 3px solid rgba(96,165,250,0.18); outline-offset:3px }
     @media (max-width:720px){ .news-side-menu{ left:6px } .news-side-pill{ padding:6px 8px } }
     /* Inline wrapper so the Disable news button and the + toggle sit side-by-side */
-    .news-inline{ display:inline-flex; gap:8px; align-items:center }
+    .news-inline{ display:inline-flex; gap:var(--control-gap); align-items:center }
+    /* Inline wrapper for the focus button + always-enable menu */
+    .focus-inline{ display:inline-flex; gap:var(--control-gap); align-items:center }
     /* Stack Disable news and Enable focus controls vertically to keep focus button below the news toggle */
-    .news-controls-vertical{ display:flex; flex-direction:column; gap:8px; align-items:flex-start }
+    .news-controls-vertical{ display:flex; flex-direction:column; gap:var(--control-gap); align-items:flex-start }
     /* Row that places the Disable news button and the small '+' toggle side-by-side */
-    .news-toggle-row{ display:flex; gap:8px; align-items:center }
+    .news-toggle-row{ display:flex; gap:var(--control-gap); align-items:center }
     /* Keep the Inverted Display button and its timer toggle on the same line */
-    .inline-controls-row{ display:inline-flex; gap:8px; align-items:center; flex-wrap: nowrap }
+    .inline-controls-row{ display:inline-flex; gap:var(--control-gap); align-items:center; flex-wrap: nowrap }
+    /* Normalize child margins so gap solely controls spacing */
+    .news-inline > *,
+    .focus-inline > *,
+    .news-controls-vertical > *,
+    .news-toggle-row > *,
+    .inline-controls-row > *{ margin:0 !important }
+    /* Ensure the global bg toggles row also uses compact spacing */
+    #bgToggles{ gap: var(--control-gap) !important }
     /* Per-question TTS button: hide visually until card hover or keyboard focus */
     .qcard .tts-btn{
         opacity: 0;
@@ -3618,6 +3962,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         opacity: 1;
         transform: translateY(0);
     }
+    /* Always Enable Focus Mode ON state: green text + glowing outline */
+    #alwaysEnableFocusBtn.always-on{ color: #16a34a; border: 1px solid rgba(22,163,74,0.28); box-shadow: 0 6px 20px rgba(22,163,74,0.18), 0 0 8px rgba(22,163,74,0.12); }
     </style>
     <script>
     (function(){
@@ -3662,6 +4008,21 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     }catch(e){}
                 }, ms);
             }
+            // Update the apply button icon/state so it toggles between Check (set) and X (disable)
+            try{
+                const ab = document.getElementById('invertTimerApply');
+                if(ab){
+                    if(ms && ms > 0){
+                        ab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                        ab.title = 'Disable auto-flip';
+                        ab.setAttribute('aria-label','Disable auto-flip');
+                    } else {
+                        ab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                        ab.title = 'Set auto-flip';
+                        ab.setAttribute('aria-label','Set auto-flip');
+                    }
+                }
+            }catch(e){}
         }
 
         // wire expand/collapse
@@ -3682,7 +4043,20 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             try{ toggle.focus(); }catch{}
         }
 
-        if(applyBtn) applyBtn.addEventListener('click', (e)=>{ e.preventDefault(); applyFromInputs(); });
+        if(applyBtn) applyBtn.addEventListener('click', (e)=>{ e.preventDefault();
+            try{
+                // If a timer is currently set (persisted), treat this as the 'disable' action
+                const cur = parseInt(localStorage.getItem(KEY)||'0',10) || 0;
+                if(cur && cur > 0){
+                    // turn off timer and reset input to zero
+                    try{ if(valInput) valInput.value = '0'; if(unitSel) unitSel.value = 's'; }catch(_){}
+                    try{ setTimer(0); }catch(_){}
+                    try{ collapse(); toggle.focus(); }catch(_){}
+                    return;
+                }
+            }catch(e){}
+            applyFromInputs();
+        });
         if(valInput) valInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyFromInputs(); } });
         if(unitSel) unitSel.addEventListener('change', ()=>{ /* no-op until Set is clicked */ });
 
@@ -3705,6 +4079,29 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         // If a menu item is clicked, collapse after action
         document.querySelectorAll('#newsSideMenu .news-source-opt').forEach(b=> b.addEventListener('click', ()=>{ collapse(); toggle.focus(); }));
         // Initialize collapsed
+        collapse();
+    })();
+    // Focus-always side menu wiring
+    (function(){
+        const menu = document.getElementById('focusAlwaysMenu');
+        const toggle = document.getElementById('focusAlwaysMenuToggle');
+        const content = document.getElementById('focusAlwaysMenuContent');
+        const alwaysBtn = document.getElementById('alwaysEnableFocusBtn');
+        if(!menu || !toggle || !content || !alwaysBtn) return;
+        function expand(){ menu.classList.add('expanded'); toggle.setAttribute('aria-expanded','true'); toggle.textContent = '-'; content.setAttribute('aria-hidden','false'); }
+        function collapse(){ menu.classList.remove('expanded'); toggle.setAttribute('aria-expanded','false'); toggle.textContent = '+'; content.setAttribute('aria-hidden','true'); }
+        toggle.addEventListener('click', ()=>{ menu.classList.contains('expanded') ? collapse() : expand(); });
+        document.addEventListener('keydown', (ev)=>{ if(ev.key === 'Escape' && menu.classList.contains('expanded')){ collapse(); toggle.focus(); } });
+        // Toggle persistent preference
+        const ALWAYS_KEY = '__ui_always_focus_v1';
+        function setAlwaysState(on){ try{ if(on) alwaysBtn.classList.add('always-on'); else alwaysBtn.classList.remove('always-on'); try{ localStorage.setItem(ALWAYS_KEY, on ? '1':'0'); }catch(e){} }catch(e){} }
+        try{ const s = localStorage.getItem(ALWAYS_KEY); setAlwaysState(s === '1'); }catch(e){}
+        alwaysBtn.addEventListener('click', ()=>{ try{ const isOn = alwaysBtn.classList.contains('always-on'); const newState = !isOn; setAlwaysState(newState);
+            // Immediately apply the runtime focus-mode change when the Always toggle is changed
+            try{ if(typeof window.__setFocusMode === 'function'){ window.__setFocusMode(!!newState); } }catch(e){}
+            // collapse menu and return focus to the toggle
+            try{ if(menu.classList.contains('expanded')) collapse(); toggle.focus(); }catch(e){} }catch(e){} });
+        // Collapse by default
         collapse();
     })();
     </script>
@@ -3736,6 +4133,16 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         /* ensure it receives pointer events even if its container is inert */
         pointer-events: auto;
     }
+
+    /* Ensure the small Always-toggle and its +/- menu toggle also render above the overlay
+       when focus mode is active. Give the inline container a higher stacking context so
+       its child buttons can appear above #quiz without needing to be moved to body. */
+    body.focus-mode-active #focusInlineContainer{ position: relative; z-index: 100002; pointer-events: auto }
+    body.focus-mode-active #focusInlineContainer .news-side-menu{ position: relative; z-index: 100003 }
+    body.focus-mode-active #focusInlineContainer .news-menu-toggle,
+    body.focus-mode-active #focusInlineContainer #alwaysEnableFocusBtn{ position: relative; z-index: 200004 }
+    body.focus-mode-active #focusInlineContainer .news-menu-toggle:hover,
+    body.focus-mode-active #focusInlineContainer #alwaysEnableFocusBtn:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,0.6); }
     </style>
 
     <script>
@@ -3855,8 +4262,13 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                 document.addEventListener('focus-mode-off', restore);
             })();
 
-            // Initialize from saved pref
-            try{ const s = localStorage.getItem(KEY); if(s === '1') setState(true); }catch(e){}
+            // Initialize respecting the "Always Enable Focus" preference (do not force on from prior session unless Always is enabled)
+            const ALWAYS_KEY = '__ui_always_focus_v1';
+            let __alwaysFocus = false;
+            function __loadAlways(){ try{ __alwaysFocus = localStorage.getItem(ALWAYS_KEY) === '1'; const ab = document.getElementById('alwaysEnableFocusBtn'); if(ab) ab.classList.toggle('always-on', __alwaysFocus); }catch(e){} }
+            try{ __loadAlways(); window.addEventListener('storage', (ev)=>{ if(ev.key === ALWAYS_KEY) __loadAlways(); }); }catch(e){}
+            // On load: if Always is ON, enable focus; otherwise ensure it's OFF so users aren't forced into it
+            try{ if(__alwaysFocus){ setState(true); } else { setState(false); } }catch(e){}
 
             // Visibility: show the enableFocusBtn only when #quiz is visible (not .hidden)
             let quizEl = document.getElementById('quiz');
@@ -3866,7 +4278,12 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     if(!quizEl) quizEl = document.getElementById('quiz');
                     if(!quizEl) { btn.style.display = 'none'; return; }
                     const hidden = quizEl.classList.contains('hidden');
-                    btn.style.display = hidden ? 'none' : 'inline-flex';
+                    const disp = hidden ? 'none' : 'inline-flex';
+                    btn.style.display = disp;
+                    // keep the Always-focus container in sync with the button visibility
+                    try{ const fic = document.getElementById('focusInlineContainer'); if(fic) fic.style.display = disp; }catch(e){}
+                    // If a quiz becomes visible and the user requested Always-enable, turn on focus mode
+                    try{ if(!hidden && typeof __alwaysFocus !== 'undefined' && __alwaysFocus){ setState(true); } }catch(e){}
                 }catch(e){ }
             }
 
@@ -5706,7 +6123,7 @@ ANSWER KEY
     #categorySearchResults .result:last-child{ border-bottom:none }
     #categorySearchResults .result:hover{ background:rgba(0,0,0,0.02) }
     /* container that keeps random + gear together */
-    .random-controls{ display:inline-flex; align-items:center; gap:0 }
+    .random-controls{ display:inline-flex; align-items:center; gap: var(--control-gap); margin-left: var(--control-gap); }
     .gear-btn.disabled{ opacity:0.45; pointer-events:none }
     /* API key dot indicators */
     .api-key-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; box-shadow: 0 0 6px rgba(0,0,0,0.15); }
@@ -5927,6 +6344,18 @@ ANSWER KEY
     }
     /* Blink: compress vertically while preserving current translate values */
     .ascii-face .eye.blink{ transform: translate(var(--ex), var(--ey)) scaleY(0.12); transition: transform 120ms ease-in-out; }
+    /* Lashes — two quotation marks centered right above each eye */
+    .ascii-face .eye{ position: relative; }
+    .ascii-face .eye .lash{
+        position:absolute; top:0; left:50%; transform: translate(-50%, -0.36em);
+        font-size:.7em; line-height:1; opacity:0; pointer-events:none; letter-spacing:-0.02em;
+    }
+    .ascii-face .face.lashed .eye .lash{ opacity:1 }
+    /* Flutter when toggled — subtle brightness/spacing shimmer */
+    @keyframes lashFlutter{ 0%{ filter: brightness(1); letter-spacing: 0 } 50%{ filter: brightness(1.12); letter-spacing: 0.02em } 100%{ filter: brightness(1); letter-spacing: 0 } }
+    .ascii-face .face.lash-toggle .lash{ animation: lashFlutter .28s ease }
+    /* Compose with blink: only soften visibility during blink when lashes are enabled */
+    .ascii-face .face.lashed .eye.blink .lash{ opacity:.6 }
     /* When AI output is active, JS will pause updates; keep this CSS selector as a safeguard */
     #resultsAiOutput.ai-active .eye{ transition: none !important; }
     /* Respect user preference for reduced motion */
@@ -9091,8 +9520,40 @@ Version: 1.0
                                             brand:'#c0c0c0' 
                                         },
                 };
+                function hexToRgbaLocal(h, a){ try{ if(!h) return 'rgba(128,128,128,'+a+')'; h = h.replace('#',''); if(h.length===3) h = h.split('').map(ch=>ch+ch).join(''); const r = parseInt(h.substring(0,2),16); const g = parseInt(h.substring(2,4),16); const b = parseInt(h.substring(4,6),16); return 'rgba('+r+','+g+','+b+','+a+')'; }catch(e){ return 'rgba(128,128,128,'+a+')'; } }
+
                 function applyTheme(name){
-                    const t = themes[name] || themes.ocean;
+                    // Normalize theme key to lowercase to handle variants like 'Custom' or 'greyscale'
+                    const lname = (name || '').toString().toLowerCase();
+                    // If the user has a custom greyscale palette saved, prefer it when 'greyscale' or 'custom' is chosen
+                    if(lname === 'greyscale' || lname === 'custom'){
+                        try{
+                            const raw = localStorage.getItem('__custom_orb_greyscale_v1');
+                            if(raw){
+                                const parsed = JSON.parse(raw);
+                                if(parsed && parsed.colors && parsed.colors.c1){
+                                    const c1 = parsed.colors.c1; const c2 = parsed.colors.c2; const c3 = parsed.colors.c3;
+                                    root.style.setProperty('--glow1', hexToRgbaLocal(c1, 0.20));
+                                    root.style.setProperty('--glow2', hexToRgbaLocal(c2, 0.14));
+                                    root.style.setProperty('--glow3', hexToRgbaLocal(c3, 0.16));
+                                    root.style.setProperty('--btnTop', hexToRgbaLocal(c1, 0.30));
+                                    root.style.setProperty('--btnBottom', hexToRgbaLocal(c2, 0.28));
+                                    /* Dye borders to match the custom palette (use a stronger c3 tint for outlines) */
+                                    try{ root.style.setProperty('--btnBorder', hexToRgbaLocal(c3, 0.9)); }catch(e){ root.style.setProperty('--btnBorder', themes.greyscale.btnBorder); }
+                                    root.style.setProperty('--brand', c1);
+                                    // ensure the greyscale/custom orb reflects the inline colors as well
+                                    try{ const gre = document.querySelector('.theme-orb[data-theme="greyscale"]') || document.querySelector('.theme-orb[data-theme="custom"]') || document.querySelector('.orb-greyscale') || document.querySelector('.orb-custom'); if(gre){ gre.style.setProperty('--c1', c1); gre.style.setProperty('--c2', c2); gre.style.setProperty('--c3', c3); } }catch(e){}
+                                    // mark active
+                                    orbSel.forEach(o=>o.classList.toggle('active', (o.dataset.theme||'').toString().toLowerCase()===lname));
+                                    try{ localStorage.setItem('__theme', lname); }catch(e){}
+                                    try{ document.dispatchEvent(new CustomEvent('theme-changed', { detail: { name: lname } })); }catch(e){}
+                                    return;
+                                }
+                            }
+                        }catch(e){ /* fallback to built-in greyscale below */ }
+                    }
+                    // default theme handling
+                    const t = themes[lname] || themes.ocean;
                     root.style.setProperty('--glow1', t.glow1);
                     root.style.setProperty('--glow2', t.glow2);
                     root.style.setProperty('--glow3', t.glow3);
@@ -9100,15 +9561,15 @@ Version: 1.0
                     root.style.setProperty('--btnBottom', t.btnBottom);
                     root.style.setProperty('--btnBorder', t.btnBorder);
                     root.style.setProperty('--brand', t.brand);
-                    orbSel.forEach(o=>o.classList.toggle('active', o.dataset.theme===name));
+                    orbSel.forEach(o=>o.classList.toggle('active', (o.dataset.theme||'').toString().toLowerCase()===lname));
                     // persist selection and notify listeners
-                    try{ localStorage.setItem('__theme', name); }catch(e){}
-                    try{ document.dispatchEvent(new CustomEvent('theme-changed', { detail: { name } })); }catch(e){}
+                    try{ localStorage.setItem('__theme', lname); }catch(e){}
+                    try{ document.dispatchEvent(new CustomEvent('theme-changed', { detail: { name: lname } })); }catch(e){}
                 }
                 orbSel.forEach(o=> o.addEventListener('click', ()=> applyTheme(o.dataset.theme)));
-                // Restore last theme or default to ocean
+                // Restore last theme or default to ocean (handle previously saved 'Custom' or other-cased values)
                 let initial = 'ocean';
-                try{ const saved = localStorage.getItem('__theme'); if(saved && themes[saved]) initial = saved; }catch(e){}
+                try{ const saved = localStorage.getItem('__theme'); if(saved){ const s = saved.toString().toLowerCase(); if(s === 'custom') initial = 'greyscale'; else if(themes[s]) initial = s; } }catch(e){}
                 applyTheme(initial);
             })();
 
@@ -9581,12 +10042,24 @@ Version: 1.0
                                             // Make the output container opaque to prevent the underlying panel from showing through
                                             try{ out.style.background = 'linear-gradient(180deg, rgba(14,21,34,1), rgba(9,15,26,1))'; out.style.border = '1px solid var(--stroke)'; out.style.boxSizing = 'border-box'; out.style.zIndex = '4'; }catch(e){}
                                             out.innerHTML = '<div class="page" role="status" aria-live="polite">AI explanation panel ready. Select an answer to see a short AI analysis.</div>' +
-                                                            '<div class="ascii-face"><div class="face">(•<span class="mouth">___</span>•)</div></div>';
+                                                            '<div class="ascii-face"><div class="face" role="button" tabindex="0">(<span class="eye left"><span class="lash">&quot;&quot;</span><span class="dot">•</span></span><span class="mouth">___</span><span class="eye right"><span class="lash">&quot;&quot;</span><span class="dot">•</span></span>)</div></div>';
                                             try{ state._aiPlaceholderShown = true; }catch(e){}
                                         } else {
                                             out.innerHTML = '<div class="page" role="status" aria-live="polite"></div>' +
-                                                            '<div class="ascii-face"><div class="face">(•<span class="mouth">___</span>•)</div></div>';
+                                                            '<div class="ascii-face"><div class="face" role="button" tabindex="0">(<span class="eye left"><span class="lash">&quot;&quot;</span><span class="dot">•</span></span><span class="mouth">___</span><span class="eye right"><span class="lash">&quot;&quot;</span><span class="dot">•</span></span>)</div></div>';
                                         }
+                                        // Apply persisted lashes state and wire toggle for fallback markup
+                                        try{
+                                            const face = out.querySelector('.ascii-face .face');
+                                            const LASH_KEY = 'ai.face.lashed';
+                                            if(face){
+                                                const saved = localStorage.getItem(LASH_KEY) === '1';
+                                                if(saved) face.classList.add('lashed');
+                                                function setLash(on){ try{ face.classList.toggle('lashed', !!on); localStorage.setItem(LASH_KEY, on?'1':'0'); face.classList.add('lash-toggle'); setTimeout(()=>{ try{ face.classList.remove('lash-toggle'); }catch(e){} }, 380); }catch(e){} }
+                                                face.addEventListener('click', ()=> setLash(!face.classList.contains('lashed')));
+                                                face.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setLash(!face.classList.contains('lashed')); }});
+                                            }
+                                        }catch(e){}
                                     } else {
                                         // If content exists but we haven't marked placeholder as shown, mark it so we don't repeat
                                         if(showOnce){ try{ state._aiPlaceholderShown = true; }catch(e){} }
@@ -13552,13 +14025,23 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
     const faceRow = document.createElement('div'); faceRow.className='ascii-face';
     const faceInner = document.createElement('div'); faceInner.className = 'face-inner';
     const faceBox = document.createElement('div'); faceBox.className='face'; faceBox.style.fontFamily='monospace'; faceBox.style.fontSize='20px';
-    // Create eyes + mouth container; place the mouth between the eyes so it appears inside the face
-    faceBox.innerHTML = "<span class='eyes'>(<span class='eye left'>•</span><span class='mouth'></span><span class='eye right'>•</span>)</span>";
+    // Create eyes + mouth container; include optional lash spans inside each eye
+    faceBox.innerHTML = "<span class='eyes'>(<span class='eye left'><span class='lash'>&quot;&quot;</span><span class='dot'>•</span></span><span class='mouth'></span><span class='eye right'><span class='lash'>&quot;&quot;</span><span class='dot'>•</span></span>)</span>";
     const mouthSpan = faceBox.querySelector('.mouth');
     // Put a simple underscore mouth; we'll toggle it open/closed while speaking
     mouthSpan.textContent = '___';
     faceInner.appendChild(faceBox);
     faceRow.appendChild(faceInner);
+    // Lashes toggle (persisted)
+    try{
+        const LASH_KEY = 'ai.face.lashed';
+        const saved = localStorage.getItem(LASH_KEY) === '1';
+        if(saved) faceBox.classList.add('lashed');
+        faceBox.setAttribute('role','button'); faceBox.setAttribute('tabindex','0'); faceBox.title = 'Toggle lashes';
+        function setLash(on){ try{ faceBox.classList.toggle('lashed', !!on); localStorage.setItem(LASH_KEY, on ? '1':'0'); faceBox.classList.add('lash-toggle'); setTimeout(()=>{ try{ faceBox.classList.remove('lash-toggle'); }catch(e){} }, 380); }catch(e){} }
+        faceBox.addEventListener('click', ()=> setLash(!faceBox.classList.contains('lashed')));
+        faceBox.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setLash(!faceBox.classList.contains('lashed')); }});
+    }catch(e){}
     const controls = document.createElement('div'); controls.className='controls';
         // Stop button
         const stopBtn = document.createElement('button'); stopBtn.type='button'; stopBtn.className='btn small'; stopBtn.textContent='Stop'; stopBtn.title='Stop animated output';
