@@ -3791,16 +3791,34 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             // defaults
             const defaults = { c1: '#d4d4d4', c2: '#9ca3af', c3: '#4b5563' };
 
-            // apply stored if present
+            // If a stored custom palette exists, always paint the custom orb itself so
+            // it visually reflects the saved palette on every reload. However, only
+            // apply the palette to the global UI variables (brand/glow/button colors)
+            // when the user's persisted theme selection is actually 'custom'/'greyscale'.
             const stored = readStored();
-            if(stored && stored.colors){ try{
-                orb.style.setProperty('--c1', stored.colors.c1);
-                orb.style.setProperty('--c2', stored.colors.c2);
-                orb.style.setProperty('--c3', stored.colors.c3);
-                document.documentElement.style.setProperty('--brand', stored.colors.c1);
-                // dye outlines and button borders to match custom palette
-                try{ document.documentElement.style.setProperty('--btnBorder', mixHex(stored.colors.c2, stored.colors.c3, 0.65)); }catch(e){}
-            }catch(e){} }
+            try{
+                if(stored && stored.colors){
+                    // Always set the orb's inline color vars so the orb preview stays persistent
+                    try{
+                        orb.style.setProperty('--c1', stored.colors.c1);
+                        orb.style.setProperty('--c2', stored.colors.c2);
+                        orb.style.setProperty('--c3', stored.colors.c3);
+                    }catch(e){}
+                    // Only promote to document-level UI variables when the user selected custom
+                    const savedTheme = (localStorage.getItem('__theme') || '').toString().toLowerCase();
+                    const shouldApplyStored = (savedTheme === 'custom' || savedTheme === 'greyscale');
+                    if(shouldApplyStored){
+                        try{ document.documentElement.style.setProperty('--brand', stored.colors.c1); }catch(e){}
+                        try{ document.documentElement.style.setProperty('--glow1', hexToRgbaLocal(stored.colors.c1, 0.20)); }catch(e){}
+                        try{ document.documentElement.style.setProperty('--glow2', hexToRgbaLocal(stored.colors.c2, 0.14)); }catch(e){}
+                        try{ document.documentElement.style.setProperty('--glow3', hexToRgbaLocal(stored.colors.c3, 0.16)); }catch(e){}
+                        try{ document.documentElement.style.setProperty('--btnTop', hexToRgbaLocal(stored.colors.c1, 0.30)); }catch(e){}
+                        try{ document.documentElement.style.setProperty('--btnBottom', hexToRgbaLocal(stored.colors.c2, 0.28)); }catch(e){}
+                        // dye outlines and button borders to match custom palette
+                        try{ document.documentElement.style.setProperty('--btnBorder', mixHex(stored.colors.c2, stored.colors.c3, 0.65)); }catch(e){}
+                    }
+                }
+            }catch(e){}
 
             function loadInputsFromOrb(){ const cs = getComputedStyle(orb); c1.value = toHex(cs.getPropertyValue('--c1')||defaults.c1); c2.value = toHex(cs.getPropertyValue('--c2')||defaults.c2); c3.value = toHex(cs.getPropertyValue('--c3')||defaults.c3); preview.style.background = makeSmoothGradient(c1.value, c2.value, c3.value); }
 
@@ -10238,17 +10256,20 @@ Version: 1.0
             }
 
             function showSummary() {
-                // stop timer and compute duration
+                // stop timer
                 if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; }
                 state.quizEndTime = Date.now();
-                const elapsedMs = (state.quizStartTime && state.quizEndTime) ? (state.quizEndTime - state.quizStartTime) : 0;
+                // finalize the just-completed attempt so its duration is recorded
+                finalizeCurrentAttempt();
+                // Compute total time as the combined durations of all finalized attempts
+                const totalAttemptMs = Array.isArray(state.attempts) ? state.attempts.reduce((s,a)=>s + (a.durationMs||0), 0) : 0;
+                // Fallback: if no attempts recorded, fall back to quizStart/End delta
+                const elapsedMs = totalAttemptMs || ((state.quizStartTime && state.quizEndTime) ? (state.quizEndTime - state.quizStartTime) : 0);
                 // Ensure Validate/Like-Questions sections remain hidden on the summary screen
                 try{ document.getElementById('ai-likeq')?.classList.add('hidden'); }catch{}
                 try{ document.getElementById('ai-likeq-copy')?.classList.add('hidden'); }catch{}
-                try{ document.body.classList.remove('quiz-running'); }catch{}
+                try{ document.body.classList.remove('quiz-running'); }catch{ }
                 try{ restoreGeminiStateAfterQuiz(); }catch{}
-                // finalize current attempt (initial pass)
-                finalizeCurrentAttempt();
                 const missed = [];
                 state.items.forEach((_, ix) => { const r = state.answered[ix]; if (!r || !r.submitted || !r.correct) missed.push(ix); });
                 quiz.innerHTML =
