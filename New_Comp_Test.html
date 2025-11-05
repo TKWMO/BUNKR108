@@ -260,6 +260,26 @@
         }
         if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
     })();
+    // Ensure invert-timer toggle is robustly wired even if earlier nested initialization failed
+    (function(){
+        try{
+            const menu = document.getElementById('invertTimerMenu');
+            const toggle = document.getElementById('invertTimerToggle');
+            const content = document.getElementById('invertTimerMenuContent');
+            if(!menu || !toggle || !content) return;
+            // Avoid double-binding
+            if(toggle.dataset._invertWired === '1') return; toggle.dataset._invertWired = '1';
+
+            function expand(){ menu.classList.add('expanded'); toggle.setAttribute('aria-expanded','true'); content.setAttribute('aria-hidden','false'); }
+            function collapse(){ menu.classList.remove('expanded'); toggle.setAttribute('aria-expanded','false'); content.setAttribute('aria-hidden','true'); }
+
+            toggle.addEventListener('click', function(e){ try{ e.preventDefault(); menu.classList.contains('expanded') ? collapse() : expand(); }catch(e){} });
+            // Close on Escape when expanded
+            document.addEventListener('keydown', function(ev){ try{ if(ev.key === 'Escape' && menu.classList.contains('expanded')){ collapse(); toggle.focus(); } }catch(e){} });
+            // Initialize collapsed state
+            try{ collapse(); }catch(e){}
+        }catch(e){ /* no-op */ }
+    })();
     </script>
     <style>
         .export-highlight-label{ transition: color .12s ease; color: var(--muted); }
