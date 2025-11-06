@@ -1,50 +1,109 @@
-# BUNKR108
+# BUNKR108 — AI-Powered Study Interface
 
-This repository contains a single-page interactive web app shipped as `New_Comp_Test.html` and supporting files to serve it as a GitHub Pages site (see `index.html` and the `.github/workflows` workflow).
+**Live demo:** https://tkwmo.github.io/BUNKR108/New_Comp_Test.html
 
-## About `New_Comp_Test.html`
+## Overview
+BUNKR108 is a fully client-side study and quiz-generation interface. It can ingest your own materials, generate MCQs, build flashcards, run spaced-repetition sessions, and optionally use AI (Gemini) for extraction, formatting, analysis, and question generation. All data and API keys remain local to the user’s browser.
 
-`New_Comp_Test.html` is a richly styled, self-contained frontend that provides a portable MCQ (multiple-choice question) quiz experience plus a set of ambient and productivity features. It is designed to run entirely in the browser (static HTML/CSS/JS) and is suitable for local preview or publishing to GitHub Pages.
+---
 
-Key pieces inside the file:
-- A themeable, mobile-friendly (landscape) MCQ quiz UI with question cards, skip/review controls and saved-question management.
-- Integration points for AI-assisted generation/validation/export (UI panels for file generation and AI preview are present; external API keys are not included in the repo).
-- An ambient "HF Skywave" radio player (select curated streams or custom HTTPS stream URLs).
-- A blocky ASCII clock, boot/loading overlay, sticky notes/rail UI and other small widgets for a polished single-page app feel.
-- Resilient playback handling: playback recovery, alternate stream fallbacks, and Media Session API support for hardware media keys.
+## Features
 
-## BUNKR108 — Functionality summary
+### MCQ Builder
+- Paste MCQs or upload a `.txt` file using the required format (`Q1.` → `-` options → `ANSWER KEY` block).
+- **Reformat & Assign Answers (AI):** cleans messy or inconsistent text into the standard format.
+- **Generate MCQs from .docx / .pdf / .pptx (AI):** extracts content and produces formatted questions.
+- Shuffle questions/answers, enable instant feedback, and preview before starting a quiz.
+- Export as PDF and optionally highlight correct answers.
 
-- Static single-file web app: everything required to run the UI is bundled into `New_Comp_Test.html` with some optional external assets (scripts/styles) loaded when present.
-- Quiz workflow: import or paste MCQs, take quizzes, skip & mark for review, save sets and re-load saved items.
-- AI helpers: panels for generating question content, validating answers, and creating downloadable files (.docx/.pdf) — these require an external AI/key to be functional.
-- Audio player: curated public streams + custom station support; Twilight mode uses a YouTube playlist for audio-only playback.
-- Accessibility & usability: keyboard/media-key controls, responsive layout, reduced-motion support and focus-visible outlines for interactive controls.
+### Flashcards & SRS
+- Convert parsed MCQs directly into flashcards.
+- Run sessions using Again / Hard / Good / Easy controls.
+- Export decks to CSV or APKG-shim format for external tools.
 
-## How to view
+### Content Library
+- Upload PDFs, detect table-of-contents sections, and store extracted chapter text locally.
+- Saved content is kept entirely in the user’s browser (localStorage/IndexedDB).
 
-- Locally (quick):
+### Random Quiz Generator
+- Create a random daily quiz, optionally scoped by a Wikipedia search.
+- Select a search result to narrow the quiz domain.
 
-	python3 -m http.server 8000
+### Radio Module
+- “HF Skywave” panel for ambient study audio.
+- Allows adding custom HTTPS MP3/AAC streams (CORS-compatible only).
+- No accounts or external tracking.
 
-	Then open: http://localhost:8000/New_Comp_Test.html
+### Interface Controls
+- Toggle animations, invert display, adjust animation timing.
+- Focus mode (temporary or persistent).
+- Disable news ticker (PubMed/arXiv presets shown in interface).
 
-- In VS Code: open this repository and use the Markdown Preview to see this README; open `New_Comp_Test.html` in the editor and use the Live Server extension or the command above.
-- Published on GitHub Pages: the project includes `index.html` and a workflow that deploys the repository to GitHub Pages on pushes to `main`. The expected site URL is:
+### AI Analysis
+- Summarize performance after quizzes.
+- Validate answer keys via AI.
+- Generate new variations of existing questions.
 
-	https://eshaw0322-design.github.io/BUNKR108/
+---
 
-	(If the workflow doesn't run, check repository Actions settings and re-run the workflow.)
+## How It Works (Privacy & Local-Only)
+- **No servers, no uploads:** all operations occur in the browser.
+- **API keys never leave the device:** Gemini keys are stored locally and used directly by the browser.
+- **User materials stay local:** parsed text, quizzes, saved content, and settings remain client-side.
 
-## Notes & limitations
+---
 
-- Streams and some external services require HTTPS, permissive CORS, and may be blocked by the browser if not configured correctly.
-- AI features are UI-only in the repo; you must supply API keys or backend integration for them to work.
-- The README iframe preview is only supported in editors that allow raw HTML rendering (VS Code). GitHub's README rendering strips iframes.
+## Quick Start
+1. Open the demo and accept Terms of Use.
+2. (Optional) Add a Gemini API key to enable AI-supported features.
+3. Load or paste MCQs, parse, preview, and start a quiz.
 
-If you'd like, I can:
-- Swap the meta-redirect in `index.html` for an embedded iframe preview.
-- Add a short demo GIF or screenshot to the README.
-- Help enable or debug the GitHub Actions Pages deployment logs.
+---
 
-Enjoy — open `New_Comp_Test.html` to see the app.
+## Usage Guide
+
+### Importing Text MCQs
+1. Paste questions in the required format.
+2. Click **Parse & Preview** and then **Start Quiz**.
+3. Use toggles for shuffling and instant feedback.
+
+### Using Document-to-MCQ (AI)
+1. Upload a `.pdf`, `.docx`, or `.pptx`.
+2. Review the AI preview.
+3. Insert output directly into the editor.
+
+### Flashcards
+- Load parsed content into the flashcard module.
+- Review using spaced-repetition buttons.
+- Export to CSV or APKG-shim.
+
+### Content Library
+- Load PDFs, scan TOC, and save extracted chapters.
+- Access saved content from the library panel.
+
+### Radio
+- Add custom stream name + URL.
+- Stream starts instantly if CORS-compliant.
+
+---
+
+## Exports
+- PDF quizzes.
+- CSV or APKG-shim flashcard decks.
+
+---
+
+## Tech Notes
+- Uses pdf.js, Mammoth, JSZip, Tesseract.js, and other browser-side libraries via CDN.
+- AI features rely on the Gemini SDK loaded client-side.
+- Some streaming URLs may require HTTPS + correct CORS settings.
+
+---
+
+## License
+- MIT License (see repository).
+
+---
+
+## Credits
+Created by **Ethan Shaw**.
