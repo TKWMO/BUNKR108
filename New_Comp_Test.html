@@ -500,8 +500,8 @@
         .pill input[type="checkbox"]{ accent-color: var(--brand); }
     .pill input[type="checkbox"]:focus-visible{ outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px }
 
-    /* Theme the quiz answer radio bullets to match accent */
-    .choice input[type="radio"]{ accent-color: var(--brand); }
+    /* Removed brand accent on quiz radios to avoid color bleed; radios are custom-rendered in the quiz section */
+    /* .choice input[type="radio"]{ accent-color: var(--brand); } */
 
 /* Compact choice styling so options fit narrower cards and wrap neatly */
 .choice{
@@ -783,7 +783,7 @@
     .orb-greyscale{ --c1:#d4d4d4; --c2:#9ca3af; --c3:#4b5563 }
 
     /* Palette editor (minimal, square, movable) */
-    .palette-editor{ position:fixed; width:248px; border-radius:10px; padding:8px; z-index:2147483648; color:var(--ink);
+    .palette-editor{ position:fixed; width:248px; border-radius:10px; padding:8px; z-index:2147483645; color:var(--ink);
         background: linear-gradient(180deg, rgba(16,24,38,.94), rgba(10,16,28,.90));
         border:1px solid rgba(255,255,255,0.06);
         box-shadow: 0 14px 36px rgba(2,6,12,0.55);
@@ -836,6 +836,42 @@
     #peClose.btn.small:hover{ filter: brightness(1.06); transform: translateY(-1px); }
     #peClose.btn.small:focus{ outline: 2px solid rgba(96,165,250,.35); outline-offset: 2px }
     @media (max-width:640px){ .palette-editor{ width:92%; left:4% !important; right:auto !important } }
+
+    /* In-DOM Custom Color Picker (invertable under light-mode) */
+    #ccpPanel{ position: fixed; z-index:2147483645; width:280px; border-radius:12px; padding:10px; box-sizing:border-box;
+        color: var(--ink);
+        background: linear-gradient(180deg, rgba(16,24,38,.96), rgba(10,16,28,.92));
+        border:1px solid rgba(255,255,255,0.06);
+        box-shadow: 0 18px 42px rgba(2,6,12,0.55);
+        -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    #ccpPanel .row{ display:flex; align-items:center; gap:10px; margin:8px 0 }
+    #ccpPanel .lbl{ width:22px; font-weight:800; font-size:11px; color:var(--muted) }
+    #ccpPanel input[type=range]{ flex:1; appearance:none; height:6px; border-radius:999px; background:#0c1526; outline:none; border:1px solid rgba(255,255,255,.06) }
+    #ccpPanel input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--ink); border:1px solid rgba(0,0,0,.4) }
+    #ccpPanel .preview{ height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.04) }
+
+    /* Glassy radio / swatch styling - semi-transparent, blurred, and reflective */
+    .glass-radio, input[type="radio"]{
+        -webkit-appearance: none; appearance: none;
+        width: 20px; height: 20px; border-radius: 50%; display:inline-block; vertical-align: middle;
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: inset 0 6px 14px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 26px rgba(2,6,12,0.45);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+    .glass-radio:hover, input[type="radio"]:hover{ transform: translateY(-2px); box-shadow: inset 0 8px 18px rgba(255,255,255,0.04), 0 12px 32px rgba(2,6,12,0.5); }
+    .glass-radio:focus, input[type="radio"]:focus{ outline: 2px solid rgba(96,165,250,0.16); outline-offset: 2px }
+    .glass-radio.checked, input[type="radio"]:checked{
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: 0 10px 30px rgba(2,6,12,0.52), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* Use circular preview swatch inside the custom picker to show selected color as glass */
+    #ccpPanel .preview{ width:34px; flex:0 0 34px; border-radius:50%; display:inline-block; }
+    #ccpPanel .actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:10px }
+    #ccpPanel .btn{ border-radius:10px; padding:8px 12px; font-weight:800; font-size:12px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); cursor:pointer }
 
     /* Utility classes to replace inline styles */
     .mt-6{ margin-top:6px }
@@ -1016,10 +1052,10 @@
 
         .choice {
             display: block;
-            margin: 8px 0;
+            margin: 12px 0;
             padding: 12px;
             border: 1px solid rgba(70, 90, 130, .5);
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
             background: linear-gradient(180deg, rgba(14, 20, 32, .55), rgba(10, 15, 26, .55))
         }
@@ -1037,6 +1073,69 @@
         .choice input {
             margin-right: 8px
         }
+
+        /* Ensure quiz choice rows have horizontally aligned radio dots and label text */
+        .qcard .choice{ display:flex; align-items:center; gap:10px; }
+    /* Elevate choice rows so radios sit above sticky notes / overlays without altering layout */
+    .qcard .choice{ position:relative; z-index: 5000; }
+        .qcard .choice input[type="radio"]{
+            /* Override global glass style for clarity and alignment within choices */
+            -webkit-appearance: none; appearance: none;
+            accent-color: unset !important; /* kill UA accent so no stray green appears */
+            width: 20px; height: 20px; flex: 0 0 20px;
+            border-radius: 50%; box-sizing: border-box;
+            border: 2px solid rgba(110,150,200,.65);
+            background: transparent; background-color: transparent !important; position: relative; z-index: 6000;
+            box-shadow: none !important; /* keep ring crisp; override global glass shadow */
+            -webkit-backdrop-filter: none !important; backdrop-filter: none !important; /* prevent darkened center from glass blur */
+            transform: none !important;
+            vertical-align: middle;
+            align-self: center; /* ensure radio centers within the full choice box */
+        }
+        .qcard .choice input[type="radio"]:focus{ outline: 2px solid rgba(96,165,250,.35); outline-offset: 2px }
+        /* Default checked base (before correctness classes apply). Keep neutral to avoid bleed. */
+        .qcard .choice input[type="radio"]:checked{
+            border-color: rgba(110,150,200,.8) !important;
+            background: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Smooth colored inner circle for correct / wrong states */
+        /* Strong, explicit checked visuals: inner white dot plus colored ring. Use !important to override any earlier generic radio styling. */
+        /* CORRECT: user's selected correct -> show white center + green ring */
+        .qcard .choice.correct input[type="radio"]:checked{
+            border-color: var(--ok) !important;
+            background-image:
+                radial-gradient(circle at center, #ffffff 0 46%, rgba(255,255,255,0) 48%),
+                radial-gradient(circle at center, var(--ok) 60%, var(--ok) 78%, rgba(0,0,0,0) 80%) !important;
+            background-repeat: no-repeat !important;
+            background-position: center !important; background-size: 100% 100% !important;
+            box-shadow: none !important; filter: none !important;
+        }
+        /* CORRECT: the revealed correct (not selected) -> green ring with transparent center */
+        .qcard .choice.correct input[type="radio"]:not(:checked){
+            border-color: var(--ok) !important;
+            background: radial-gradient(circle at center,
+                         rgba(0,0,0,0) 0%, rgba(0,0,0,0) 56%,
+                         var(--ok) 60%, var(--ok) 78%,
+                         rgba(0,0,0,0) 82%) !important;
+            background-color: transparent !important; background-repeat: no-repeat !important; background-position: center !important; background-size: 100% 100% !important;
+        }
+        .qcard .choice.wrong input[type="radio"]:checked{
+            border-color: var(--bad) !important;
+            /* ensure no brand/green bleed; pure red ring with white center */
+            background-image:
+                radial-gradient(circle at center, #ffffff 0 46%, rgba(255,255,255,0) 48%),
+                radial-gradient(circle at center, var(--bad) 60%, var(--bad) 78%, rgba(0,0,0,0) 80%) !important;
+            background-repeat: no-repeat !important;
+            background-position: center !important; background-size: 100% 100% !important;
+            box-shadow: none !important;
+        }
+        /* Keep the option letter on a fixed column so text lines up nicely */
+        .qcard .choice strong{ width: 1.8em; display:inline-block }
+
+    /* Choice body: make the text a block-level flex child so the radio vertically centers to the box, not the text baseline */
+    .qcard .choice .choice-body{ display:block; flex:1 1 auto; min-width:0 }
 
         .footer {
             margin-top: 18px;
@@ -1149,6 +1248,8 @@
             /* Note window */
             .sticky-note{ position:fixed; z-index:195; width:260px; min-width:180px; min-height:160px; border-radius:12px; box-shadow: 0 10px 24px rgba(0,0,0,.45); border:1px solid rgba(60,80,120,.45); background: #121a2a; display:flex; flex-direction:column; overflow:hidden }
             .sticky-note.min{ height:auto }
+            /* When a note is clipped into the left magnet (slot 4), lower it to the rail plane so quiz UI (>=8000) clears above */
+            .sticky-note[data-sticky-slot="4"]{ z-index:188 !important; }
             .sticky-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; cursor:grab; -webkit-user-select:none; user-select:none; background: linear-gradient(180deg, var(--btnTop), rgba(12,20,34,.65)); border-bottom:1px solid var(--btnBorder) }
             .sticky-title{ flex:1 1 auto; min-width:0; font-size:12px; font-weight:800; color: var(--ink); outline:none; background: transparent; border:0 }
             .sticky-actions{ display:flex; gap:6px; align-items:center; flex-shrink:0; white-space:nowrap }
@@ -3906,6 +4007,70 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
             header.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape'){ closeEditor(); } });
 
             // on load, if stored pos exists and editor visible (hidden by default) do nothing
+
+            // --- Custom in-DOM color picker (invertable) ---
+            (function(){
+                // Convert helpers
+                function hexToRgb(h){ try{ h=h.replace('#',''); if(h.length===3) h=h.split('').map(ch=>ch+ch).join(''); const r=parseInt(h.substr(0,2),16), g=parseInt(h.substr(2,2),16), b=parseInt(h.substr(4,2),16); return {r,g,b}; }catch(e){ return {r:0,g:0,b:0}; } }
+                function rgbToHex(r,g,b){ const to=(n)=>{ n=Math.max(0,Math.min(255,Math.round(n))); const s=n.toString(16); return s.length===1?'0'+s:s; }; return '#'+to(r)+to(g)+to(b); }
+                function rgbToHsl(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){ h=s=0; } else { const d=max-min; s=l>0.5? d/(2-max-min) : d/(max+min); switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; case b: h=(r-g)/d+4; break; } h/=6; } return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) }; }
+                function hslToRgb(h,s,l){ h/=360; s/=100; l/=100; const hue2rgb=(p,q,t)=>{ if(t<0) t+=1; if(t>1) t-=1; if(t<1/6) return p+(q-p)*6*t; if(t<1/2) return q; if(t<2/3) return p+(q-p)*(2/3 - t)*6; return p; }; let r,g,b; if(s===0){ r=g=b=l; } else { const q=l<0.5? l*(1+s) : l+s-l*s; const p=2*l-q; r=hue2rgb(p,q,h+1/3); g=hue2rgb(p,q,h); b=hue2rgb(p,q,h-1/3); } return { r: Math.round(r*255), g: Math.round(g*255), b: Math.round(b*255) }; }
+
+                let panel = null; let target = null; let hInp=null, sInp=null, lInp=null, preview=null; let apply=null, cancel=null;
+                function ensurePanel(){
+                    if(panel) return panel;
+                    panel = document.createElement('div'); panel.id='ccpPanel'; panel.setAttribute('role','dialog'); panel.setAttribute('aria-label','Color picker');
+                    panel.innerHTML = `
+                        <div class="row"><div class="lbl">H</div><input id="ccpH" type="range" min="0" max="360" value="0"></div>
+                        <div class="row"><div class="lbl">S</div><input id="ccpS" type="range" min="0" max="100" value="100"></div>
+                        <div class="row"><div class="lbl">L</div><input id="ccpL" type="range" min="0" max="100" value="50"></div>
+                        <div class="row"><div class="preview" id="ccpPrev" style="flex:1"></div></div>
+                        <div class="actions"><button class="btn" id="ccpCancel">Cancel</button><button class="btn" id="ccpApply">Apply</button></div>
+                    `;
+                    document.body.appendChild(panel);
+                    hInp = panel.querySelector('#ccpH'); sInp = panel.querySelector('#ccpS'); lInp = panel.querySelector('#ccpL');
+                    preview = panel.querySelector('#ccpPrev'); apply = panel.querySelector('#ccpApply'); cancel = panel.querySelector('#ccpCancel');
+                    function update(){
+                        const h = parseInt(hInp.value||'0',10), s = parseInt(sInp.value||'0',10), l = parseInt(lInp.value||'0',10);
+                        const {r,g,b} = hslToRgb(h,s,l); const hex = rgbToHex(r,g,b);
+                        preview.style.background = hex;
+                        return hex;
+                    }
+                    ['input','change'].forEach(ev=>{ hInp.addEventListener(ev, update); sInp.addEventListener(ev, update); lInp.addEventListener(ev, update); });
+                    apply.addEventListener('click', ()=>{ if(!target) return; const hex = update(); try{ target.value = hex; target.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} close(); });
+                    cancel.addEventListener('click', ()=> close());
+                    function onKey(ev){ if(ev.key==='Escape'){ ev.preventDefault(); close(); } }
+                    panel.addEventListener('keydown', onKey);
+                    panel.__update = update;
+                    return panel;
+                }
+                function positionNear(el){ try{ const r = el.getBoundingClientRect(); const w = panel.offsetWidth||280; const h = panel.offsetHeight||170; let left = Math.min(window.innerWidth - w - 8, Math.max(8, Math.round(r.left))); let top = Math.min(window.innerHeight - h - 8, Math.max(8, Math.round(r.bottom + 6))); panel.style.left = left+'px'; panel.style.top = top+'px'; }catch(e){} }
+                function openFor(input){ try{
+                    target = input; ensurePanel();
+                    const rgb = hexToRgb(String(input.value||'#ffffff')); const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                    hInp.value = String(hsl.h); sInp.value = String(hsl.s); lInp.value = String(hsl.l);
+                    panel.__update && panel.__update();
+                    positionNear(input);
+                    panel.style.display = 'block';
+                    setTimeout(()=>{ try{ panel.focus(); }catch(e){} }, 0);
+                    // Close on outside click
+                    const onDoc = (ev)=>{ try{ if(panel && !panel.contains(ev.target)) close(); }catch(e){} };
+                    document.addEventListener('mousedown', onDoc, { once:true });
+                    panel.__onDoc = onDoc;
+                }catch(e){}
+                }
+                function close(){ try{ if(panel){ panel.style.display='none'; if(panel.__onDoc){ document.removeEventListener('mousedown', panel.__onDoc); panel.__onDoc=null; } } target=null; }catch(e){} }
+
+                function intercept(input){
+                    if(!input) return;
+                    // Prevent native picker by disabling during pointer down
+                    input.addEventListener('mousedown', (ev)=>{ try{ ev.preventDefault(); ev.stopPropagation(); input.disabled = true; setTimeout(()=>{ input.disabled = false; }, 0); openFor(input); }catch(e){} });
+                    // Also intercept keyboard activation
+                    input.addEventListener('keydown', (ev)=>{ try{ if(ev.key==='Enter' || ev.key===' '){ ev.preventDefault(); openFor(input); } }catch(e){} });
+                }
+
+                intercept(c1); intercept(c2); intercept(c3);
+            })();
         }
 
         if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
@@ -4408,6 +4573,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
 
     /* Small visual for toggled state */
     #enableLightModeBtn[aria-pressed="true"]{ box-shadow: 0 6px 18px rgba(0,0,0,0.16); transform: translateY(-1px); }
+    /* Light-mode: let the palette editor, its gradient preview, and its color pickers invert with the UI. */
     </style>
 
     <script>
@@ -6198,11 +6364,13 @@ ANSWER KEY
 
     /* Outer glow + subtle tinted overlay (very low opacity so underlying card stays readable) */
     .choice.correct::after{
-        box-shadow: 0 0 0 6px rgba(77,209,122,0.12);
+        /* Reduced halo thickness from 6px to 3px per request */
+        box-shadow: 0 0 0 3px rgba(77,209,122,0.12);
         background: linear-gradient(180deg, rgba(77,209,122,0.04), rgba(77,209,122,0.02));
     }
     .choice.wrong::after{
-        box-shadow: 0 0 0 6px rgba(255,107,107,0.12);
+        /* Match reduced halo thickness for wrong state */
+        box-shadow: 0 0 0 3px rgba(255,107,107,0.12);
         background: linear-gradient(180deg, rgba(255,107,107,0.04), rgba(255,107,107,0.02));
     }
 
@@ -6244,7 +6412,7 @@ ANSWER KEY
         content: "";
         position: absolute;
         inset: 0;
-        border-radius: 10px;
+        border-radius: 12px;
         pointer-events: none;
         z-index: 2147483644; /* under the outline (::after), above base content */
         /* Apply the same gradients as normal mode, but double-invert to cancel the global invert */
@@ -6264,6 +6432,63 @@ ANSWER KEY
 
     /* Keep the inner tag/label content above the pseudo-element so text/icons remain readable */
     .choice > * { position: relative; z-index: 2147483649; }
+    </style>
+
+    <style>
+    /* Ensure radios keep true green/red fills and borders even when global light-mode inversion is active */
+    /* Neutralize default checked visuals under inverted mode to prevent brand/UA tints */
+    body.light-mode-active .qcard .choice input[type="radio"]:checked{
+        border-color: rgba(110,150,200,.8) !important;
+        background: none !important;
+        box-shadow: none !important;
+    }
+    body.light-mode-active .qcard .choice.correct input[type="radio"]{
+        border-color: var(--ok) !important;
+        /* Do NOT invert the base radio so the transparent center sees the green overlay behind */
+        -webkit-filter: none !important; filter: none !important;
+    }
+    body.light-mode-active .qcard .choice.wrong input[type="radio"]{
+        border-color: var(--bad) !important;
+        -webkit-filter: invert(1) !important;
+        filter: invert(1) !important;
+    }
+    /* Ensure wrong un-checked radios also stay red ring + white center in inverted mode */
+    body.light-mode-active .qcard .choice.wrong input[type="radio"]:not(:checked){
+        border-color: var(--bad) !important;
+        background-image: radial-gradient(circle at center, #ffffff 0 46%, rgba(255,255,255,0) 48%),
+                          radial-gradient(circle at center, var(--bad) 60%, var(--bad) 78%, rgba(0,0,0,0) 80%) !important;
+        background-repeat: no-repeat !important; background-position: center !important; background-size: 100% 100% !important;
+        -webkit-filter: invert(1) !important; filter: invert(1) !important;
+    }
+    /* And for the checked state, draw the smooth inner circle and double-invert so the hue stays correct */
+    /* Mirror the checked visuals under inverted (light-mode) by applying the same layered backgrounds and double-inverting so hues remain correct. */
+    /* In inverted mode: if the user CHECKED the correct, show white center + ring, and double-invert to preserve hues */
+    body.light-mode-active .qcard .choice.correct input[type="radio"]:checked{
+        border-color: var(--ok) !important;
+        background-image:
+            radial-gradient(circle at center, #ffffff 0 46%, rgba(255,255,255,0) 48%),
+            radial-gradient(circle at center, var(--ok) 60%, var(--ok) 78%, rgba(0,0,0,0) 80%) !important;
+        background-repeat: no-repeat !important; background-position: center !important; background-size: 100% 100% !important;
+        -webkit-filter: invert(1) !important; filter: invert(1) !important;
+    }
+    /* In inverted mode: revealed correct that is NOT selected -> green ring with transparent center; double-invert ring to keep it green */
+    body.light-mode-active .qcard .choice.correct input[type="radio"]:not(:checked){
+        border-color: var(--ok) !important;
+        background: radial-gradient(circle at center,
+                     rgba(0,0,0,0) 0%, rgba(0,0,0,0) 56%,
+                     var(--ok) 60%, var(--ok) 78%,
+                     rgba(0,0,0,0) 82%) !important;
+        background-color: transparent !important; background-repeat: no-repeat !important; background-position: center !important; background-size: 100% 100% !important;
+        -webkit-filter: invert(1) !important; filter: invert(1) !important;
+    }
+    body.light-mode-active .qcard .choice.wrong input[type="radio"]:checked{
+        border-color: var(--bad) !important;
+        background-image:
+            radial-gradient(circle at center, #ffffff 0 46%, rgba(255,255,255,0) 48%),
+            radial-gradient(circle at center, var(--bad) 60%, var(--bad) 78%, rgba(0,0,0,0) 80%) !important;
+        background-repeat: no-repeat !important; background-position: center !important; background-size: 100% 100% !important;
+        -webkit-filter: invert(1) !important; filter: invert(1) !important;
+    }
     </style>
 
 
@@ -9058,7 +9283,28 @@ Version: 1.0
                     document.getElementById('fcOHard').addEventListener('click', ()=> saveRatingAndAdvance(1));
                     document.getElementById('fcOGood').addEventListener('click', ()=> saveRatingAndAdvance(2));
                     document.getElementById('fcOEasy').addEventListener('click', ()=> saveRatingAndAdvance(3));
-                    document.getElementById('fcOExit').addEventListener('click', ()=> closeOverlay());
+                    // Show the same 'Returning to Main Menu' popup when user clicks Close
+                    function showReturningPopup(){
+                        try{
+                            try{ const prev = document.getElementById('fcCompleteContainer'); if(prev) prev.remove(); }catch(e){}
+                            const cont = document.createElement('div'); cont.id = 'fcCompleteContainer';
+                            cont.style.position = 'fixed'; cont.style.inset = '0'; cont.style.display = 'flex'; cont.style.alignItems = 'center'; cont.style.justifyContent = 'center'; cont.style.zIndex = '9999999'; cont.style.pointerEvents = 'none';
+                            cont.style.backdropFilter = 'blur(6px)'; cont.style.background = 'rgba(0,0,0,0.28)';
+                            const box = document.createElement('div');
+                            box.style.background = 'linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.5))';
+                            box.style.border = '1px solid rgba(255,255,255,0.06)';
+                            box.style.padding = '18px 22px'; box.style.borderRadius = '12px'; box.style.textAlign = 'center'; box.style.color = '#fff'; box.style.maxWidth = '820px'; box.style.boxSizing = 'border-box'; box.style.opacity = '0'; box.style.transition = 'opacity .28s ease';
+                            box.style.outline = '2px solid rgba(255,255,255,0.95)'; box.style.outlineOffset = '6px';
+                            const main = document.createElement('div'); main.textContent = 'Returning to Main Menu'; main.style.fontSize = '34px'; main.style.fontWeight = '700'; main.style.lineHeight = '1.2'; main.style.marginBottom = '8px';
+                            const sub = document.createElement('div'); sub.id = 'fcCompleteSub'; sub.textContent = ''; sub.style.fontSize = '20px'; sub.style.fontWeight = '700'; sub.style.opacity = '0'; sub.style.transition = 'opacity .36s ease';
+                            box.appendChild(main); box.appendChild(sub); cont.appendChild(box); document.body.appendChild(cont);
+                            requestAnimationFrame(()=>{ try{ box.style.opacity = '1'; }catch(e){} });
+                            setTimeout(()=>{ try{ sub.style.opacity = '1'; }catch(e){} }, 600);
+                            // Keep the popup visible while overlay fades; let closeOverlay() handle de-blur and popup fade/removal after overlay removal.
+                            setTimeout(()=>{ try{ closeOverlay(); }catch(e){} }, 1400);
+                        }catch(e){}
+                    }
+                    document.getElementById('fcOExit').addEventListener('click', ()=> showReturningPopup());
                     // Bind overlay timer toggle and sync UI
                     try{ document.getElementById('fcOverlayTimer')?.addEventListener('click', ()=> toggleFcTimerMode()); }catch(e){}
                     try{ updateFcTimerUI(); }catch(e){}
@@ -9087,26 +9333,7 @@ Version: 1.0
                            If you'd like Enter to advance, we can enable it conditionally (for example only when the card is flipped),
                            but for now we keep it disabled to avoid the reported issue. */
                         else if(e.key === 'Escape'){ 
-                            // Show the same 'Returning to Main Menu' popup (mounted on body) and then close overlay so the blur persists
-                            try{
-                                try{ const prev = document.getElementById('fcCompleteContainer'); if(prev) prev.remove(); }catch(e){}
-                                const cont = document.createElement('div'); cont.id = 'fcCompleteContainer';
-                                cont.style.position = 'fixed'; cont.style.inset = '0'; cont.style.display = 'flex'; cont.style.alignItems = 'center'; cont.style.justifyContent = 'center'; cont.style.zIndex = '9999999'; cont.style.pointerEvents = 'none';
-                                cont.style.backdropFilter = 'blur(6px)'; cont.style.background = 'rgba(0,0,0,0.28)';
-                                const box = document.createElement('div');
-                                box.style.background = 'linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.5))';
-                                box.style.border = '1px solid rgba(255,255,255,0.06)';
-                                box.style.padding = '18px 22px'; box.style.borderRadius = '12px'; box.style.textAlign = 'center'; box.style.color = '#fff'; box.style.maxWidth = '820px'; box.style.boxSizing = 'border-box'; box.style.opacity = '0'; box.style.transition = 'opacity .28s ease';
-                                box.style.outline = '2px solid rgba(255,255,255,0.95)'; box.style.outlineOffset = '6px';
-                                const main = document.createElement('div'); main.textContent = 'Returning to Main Menu'; main.style.fontSize = '34px'; main.style.fontWeight = '700'; main.style.lineHeight = '1.2'; main.style.marginBottom = '8px';
-                                const sub = document.createElement('div'); sub.id = 'fcCompleteSub'; sub.textContent = ''; sub.style.fontSize = '20px'; sub.style.fontWeight = '700'; sub.style.opacity = '0'; sub.style.transition = 'opacity .36s ease';
-                                box.appendChild(main); box.appendChild(sub); cont.appendChild(box); document.body.appendChild(cont);
-                                requestAnimationFrame(()=>{ try{ box.style.opacity = '1'; }catch(e){} });
-                                setTimeout(()=>{ try{ sub.style.opacity = '1'; }catch(e){} }, 600);
-                                // Keep the popup visible while overlay fades; let closeOverlay() handle
-                                // de-blur and popup fade/removal after overlay removal.
-                                setTimeout(()=>{ try{ closeOverlay(); }catch(e){} }, 1400);
-                            }catch(e){}
+                            try{ showReturningPopup(); }catch(e){}
                         }
                     }catch(e){} }
                     document.addEventListener('keydown', overlayKeyHandler);
@@ -9841,7 +10068,14 @@ Version: 1.0
                     try{ document.getElementById('results-card')?.classList.add('hidden'); }catch{}
                     // start timer
                     state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; }
-                    state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500);
+                    state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const timerStart = (state.quizStartTime || (state.currentAttempt && state.currentAttempt.startedAt) || null); if(!timerStart) return; const ms = Math.max(0, Date.now() - timerStart); el.textContent = formatDuration(ms); }catch{} }, 500);
+                    // Ensure focus mode is only enabled at quiz start when the user explicitly chose "Always enable focus".
+                    // Some older flows or manual toggles could leave focus-mode active; prefer honoring the persisted Always setting.
+                    try{
+                        const ALWAYS_KEY = '__ui_always_focus_v1';
+                        const alwaysOn = (function(){ try{ return localStorage.getItem(ALWAYS_KEY) === '1'; }catch(e){ return false; } })();
+                        if(!alwaysOn){ try{ if(typeof window.__setFocusMode === 'function') window.__setFocusMode(false); else document.body.classList.remove('focus-mode-active'); }catch(e){} }
+                    }catch(e){}
                     hideSkipped(); renderCurrent();
                 });
             }
@@ -9951,6 +10185,10 @@ Version: 1.0
                 try{ rec._lastShownAt = Date.now(); }catch(e){}
                 const prog = Math.round((state.idx) / Math.max(1, total) * 100);
 
+                                // Compute current elapsed time so the timer doesn't flash to 00:00
+                                const timerStart = (state.quizStartTime || (state.currentAttempt && state.currentAttempt.startedAt) || null);
+                                const elapsedMsForRender = timerStart ? Math.max(0, Date.now() - timerStart) : 0;
+
                                 const grid = document.createElement('div'); grid.className = 'quizgrid';
                 // ensure the grid stretches so the sidebar can fill vertical space
                 grid.style.alignItems = 'stretch'; grid.style.minHeight = '420px';
@@ -9962,7 +10200,7 @@ Version: 1.0
           <span class="tag">#${state.idx + 1} / ${total}</span>
           <span class="tag">Score: ${state.score}</span>
           <span class="tag">Skipped: <span id="skippedCount">${state.skipped.size}</span></span>
-                    <span class="tag" title="Elapsed time"><span id="quizTimer">00:00</span></span>
+                    <span class="tag" title="Elapsed time"><span id="quizTimer">${formatDuration(elapsedMsForRender)}</span></span>
           <span class="link" id="openSkipped" style="cursor:pointer;color:var(--brand);text-decoration:underline">Open Skipped</span>
         </div>
         <div class="progress" style="flex:1 1 auto; max-width:420px"><div style="width:${prog}%"></div></div>
@@ -9988,7 +10226,7 @@ Version: 1.0
                 const ch = left.querySelector('#choices');
                     it.choices.forEach((c, idx) => {
                     const lab = document.createElement('label'); lab.className = 'choice';
-                    lab.innerHTML = `<input type="radio" name="c"> <strong>${letters[idx]}.</strong> ${safeText(c)}`;
+                    lab.innerHTML = `<input type="radio" name="c"> <strong>${letters[idx]}.</strong> <span class="choice-body">${safeText(c)}</span>`;
                     const input = lab.querySelector('input'); input.checked = rec.selected === idx;
                     // immediately submit on selection and lock choices so they cannot be changed
                     input.addEventListener('change', () => {
@@ -10361,7 +10599,7 @@ Version: 1.0
                     // start a new attempt covering the review pool
                     startAttempt('review', state.reviewPool.slice());
                     // start quiz timer for the review session (match startQuiz behavior)
-                    try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
+                    try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const timerStart = (state.quizStartTime || (state.currentAttempt && state.currentAttempt.startedAt) || null); if(!timerStart) return; const ms = Math.max(0, Date.now() - timerStart); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
                     renderCurrent();
                 };
             }
@@ -10515,7 +10753,7 @@ Version: 1.0
                         state.idx = 0;
                         startAttempt('review', state.reviewPool.slice());
                         // start quiz timer for this review continuation (match startQuiz behavior)
-                        try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const ms = (Date.now() - (state.quizStartTime||Date.now())); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
+                        try{ state.quizStartTime = Date.now(); state.quizEndTime = null; if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval = null; } state.timerInterval = setInterval(()=>{ try{ const el = document.getElementById('quizTimer'); if(!el) return; const timerStart = (state.quizStartTime || (state.currentAttempt && state.currentAttempt.startedAt) || null); if(!timerStart) return; const ms = Math.max(0, Date.now() - timerStart); el.textContent = formatDuration(ms); }catch{} }, 500); }catch(e){}
                         renderCurrent();
                     };
                     $('summary').onclick = showSummary;
@@ -13286,6 +13524,14 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
     </pre>
 </div>
 
+<!-- Elevated stacking for quiz answer interface above sticky notes -->
+<style id="quizLayerZFix">
+/* Sticky notes use z-index ~190-210 (windows ~195, dock/panel ~210, panel open 9999). Ensure quiz answers sit above notes but below open panels/modals. */
+#quiz { position: relative; z-index: 8000; }
+/* If any answer cards rely on their own stacking contexts, keep them within quiz scope */
+#quiz .qcard { position: relative; }
+</style>
+
 <script>
 // Sticky Notes: dock + windows with localStorage persistence
 (function(){
@@ -13405,6 +13651,8 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                 win.style.top = top + 'px';
                 win.style.width = width + 'px';
                 win.style.height = height + 'px';
+                // Demote clipped note to rail plane so it never sits above quiz/radios
+                try{ win.style.zIndex = (i===4 ? '188' : '189'); win.setAttribute('data-sticky-slot', String(i)); }catch{}
                 updateNote(note.id, { x: left, y: top, w: width, h: height });
                 top += height + gap;
             });
@@ -13545,7 +13793,9 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
             el.style.minWidth = '300px';
             el.style.width = Math.max(300, n.w||300) + 'px';
             el.style.height = Math.max(MIN_H, Math.min(vh - 2*M, n.h||220)) + 'px';
-        el.style.zIndex = String(n.z||195);
+        // If clipped into a slot, keep its z-index demoted to the rail plane; otherwise use stored z
+        if(n.clippedSlot != null){ el.style.zIndex = (n.clippedSlot===4 ? '188' : '189'); el.setAttribute('data-sticky-slot', String(n.clippedSlot)); }
+        else { el.style.zIndex = String(n.z||195); el.removeAttribute('data-sticky-slot'); }
         el.innerHTML = `
                 <div class="sticky-head" style="flex:0 0 auto;">
                 <input class="sticky-title" value="${(n.title||'').replace(/"/g,'&quot;')}" placeholder="Title" />
@@ -14393,5 +14643,106 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
     // Hard stop: abort animated output AND bump the results-analysis counter so
     // any in-flight responses that check the counter are treated as stale.
     window.stopAiOutput = function(){ try{ if(window.__aiOutputController) window.__aiOutputController.abort(); }catch{} try{ window.__resultsAnalysisRequestCounter = (window.__resultsAnalysisRequestCounter||0) + 1; }catch{} };
+})();
+</script>
+<script>
+// Tactile feedback (audio + haptics) — no UI changes. Lightweight, self-contained, and safe.
+(function(){
+    'use strict';
+    if(window.__tactileInstalled) return; window.__tactileInstalled = true;
+
+    // Respect reduced motion (use this as a hint to soften or disable haptics)
+    var prefersReduced = false; try{ var mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)'); prefersReduced = !!(mq && mq.matches); if(mq && mq.addEventListener){ mq.addEventListener('change', function(e){ prefersReduced = !!e.matches; }); } }catch(e){}
+
+    // Shared AudioContext + tiny tone player
+    var AC = (window.AudioContext || window.webkitAudioContext) || null;
+    var audioCtx = null;
+    function ensureCtx(){
+        try{
+            if(!AC) return null;
+            if(!audioCtx) audioCtx = new AC();
+            // try resume on user gesture
+            if(audioCtx && typeof audioCtx.resume === 'function' && audioCtx.state === 'suspended') audioCtx.resume().catch(function(){});
+            return audioCtx;
+        }catch(e){ return null; }
+    }
+    function playTone(freq, durMs){
+        try{
+            var ctx = ensureCtx(); if(!ctx) return;
+            var now = ctx.currentTime;
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = 'sine';
+            // clamp frequency and duration
+            var f = Math.max(80, Math.min(2000, +freq||440));
+            var d = Math.max(0.04, Math.min(0.6, (durMs||120)/1000));
+            osc.frequency.setValueAtTime(f, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+            // short fade-out to avoid click
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + d);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + d + 0.02);
+            // cleanup
+            setTimeout(function(){ try{ osc.disconnect(); gain.disconnect(); }catch(e){} }, (d*1000)+60);
+        }catch(e){}
+    }
+    function vibrate(pattern){ try{ if(prefersReduced) return; if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+
+    // Public API (attach to window for optional explicit calls elsewhere)
+    var api = {
+        correct: function(){ vibrate([28]); playTone(520, 130); },
+        wrong: function(){ vibrate([90, 30]); playTone(180, 170); },
+        reveal: function(){ vibrate([12]); playTone(320, 90); },
+        skip: function(){ vibrate([20, 20, 20]); playTone(260, 80); }
+    };
+    try{ Object.defineProperty(window, 'tactile', { value: api, writable: false, configurable: false }); }catch(e){ window.tactile = api; }
+
+    // Heuristic wiring: detect interactions and trigger feedback without touching existing UI code
+    function onClick(e){
+        try{
+            // Ensure AudioContext is allowed to start via a user gesture
+            ensureCtx();
+            var t = e.target || e.srcElement; if(!t) return;
+            // 1) Choice clicks — defer a tick so any correctness classes are applied first
+            var choice = t.closest && t.closest('.choice');
+            if(choice){
+                setTimeout(function(){
+                    try{
+                        if(choice.classList.contains('correct')){ api.correct(); }
+                        else if(choice.classList.contains('wrong')){ api.wrong(); }
+                    }catch(err){}
+                }, 0);
+                return;
+            }
+            // 2) Explicit buttons
+            var id = (t.id || (t.closest && t.closest('button, [role="button"]') && t.closest('button, [role="button"]').id) || '').toLowerCase();
+            if(id === 'revealbtn'){ api.reveal(); return; }
+            if(id === 'skipbtn'){ api.skip(); return; }
+            // Optionally, next/back remain silent to avoid noise during navigation
+        }catch(err){}
+    }
+
+    // Keyboard support: pressing Enter/Space on a focused .choice should also trigger after state update
+    function onKey(e){
+        try{
+            var code = e.key || e.code; if(!code) return;
+            if(code === 'Enter' || code === ' ' || code === 'Spacebar'){
+                var a = document.activeElement;
+                if(a && a.classList && a.classList.contains('choice')){
+                    setTimeout(function(){
+                        try{
+                            if(a.classList.contains('correct')) api.correct();
+                            else if(a.classList.contains('wrong')) api.wrong();
+                        }catch(err){}
+                    }, 0);
+                }
+            }
+        }catch(err){}
+    }
+
+    // Attach listeners at capture phase to avoid being blocked; keep extremely cheap
+    try{ document.addEventListener('click', onClick, true); }catch(e){}
+    try{ document.addEventListener('keydown', onKey, true); }catch(e){}
 })();
 </script>
