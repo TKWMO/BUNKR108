@@ -6295,6 +6295,61 @@ ANSWER KEY
 .tos-widget .tos-actions{ display:flex; gap:6px }
 .tos-widget .btn.small{ padding:6px 8px; font-size:12px }
 </style>
+    <!-- Flashcards / SRS Panel (moved above Preview) -->
+    <section id="flashcardsPanel" class="card pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:12px">
+                <h3 class="mt-0" style="margin:0">Flashcards & SRS</h3>
+                <div id="fcDeckInfo" class="hint" style="font-size:13px;color:var(--muted);">No deck loaded.</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <button id="fcStartSession" class="btn primary small" disabled>Start Session</button>
+                <div class="dropdown">
+                    <button id="fcExportCsv" class="btn small">Export CSV</button>
+                    <button id="fcExportApkg" class="btn small">Export APKG (shim)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="fcCardArea" style="display:none;margin-top:12px;">
+            <!-- Flashcard Timer: centered above the card; click to toggle Always vs Hover-only -->
+            <style>
+                /* Flashcard timer styles */
+                .fc-timer-row{ display:flex; justify-content:center; margin:-4px 0 8px; }
+                .fc-timer{
+                    font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+                    color: var(--ink, #e6edf3);
+                    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+                    border: 1px solid rgba(255,255,255,0.10);
+                    padding: 6px 10px; border-radius: 999px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+                    cursor: pointer; -webkit-user-select: none; user-select: none;
+                    transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
+                }
+                .fc-timer:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,0.45); }
+                .fc-timer.hover-only{ opacity: 0; pointer-events: none; }
+                #fcCardArea:hover .fc-timer.hover-only{ opacity: 1; pointer-events: auto; }
+                .fc-timer.pulse{ animation: fcTimerPulse 300ms ease; }
+                @keyframes fcTimerPulse{ 0%{ transform: scale(1); } 50%{ transform: scale(1.07); } 100%{ transform: scale(1); } }
+            </style>
+            <div id="fcTimerRow" class="fc-timer-row"><div id="fcTimer" class="fc-timer" title="Click to toggle: Always visible ↔ Show on hover">00:00</div></div>
+            <div id="fcCard" style="min-height:180px;border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(8,12,18,1), rgba(6,10,14,1));border:1px solid rgba(255,255,255,0.04);box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+                <div id="fcFront" style="font-weight:700;font-size:16px;color:var(--ink);">Question</div>
+                <div id="fcBack" style="margin-top:12px;color:var(--muted);display:none;">Answer</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+                <button id="fcFlip" class="btn">Flip</button>
+                <div style="margin-left:auto;display:flex;gap:6px;">
+                    <button id="fcAgain" class="btn" title="Again">Again</button>
+                    <button id="fcHard" class="btn" title="Hard">Hard</button>
+                    <button id="fcGood" class="btn primary" title="Good">Good</button>
+                    <button id="fcEasy" class="btn" title="Easy">Easy</button>
+                </div>
+            </div>
+            <div id="fcProgress" class="hint mt-8">Session: <span id="fcProgressText">0 / 0</span></div>
+        </div>
+    </section>
+
         <div id="preview" class="card pad hidden">
             <h2 class="mb-6 mt-0">Preview</h2>
             <div id="previewList"></div>
@@ -7013,61 +7068,7 @@ Version: 1.0
             </div>
         </div>
 
-    <!-- Flashcards / SRS Panel (always visible below Preview) -->
-    <section id="flashcardsPanel" class="card pad">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:12px">
-                <h3 class="mt-0" style="margin:0">Flashcards & SRS</h3>
-                <div id="fcDeckInfo" class="hint" style="font-size:13px;color:var(--muted);">No deck loaded.</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-                <button id="fcFromParsed" class="btn small">Load from parsed</button>
-                <button id="fcStartSession" class="btn primary small" disabled>Start Session</button>
-                <div class="dropdown">
-                    <button id="fcExportCsv" class="btn small">Export CSV</button>
-                    <button id="fcExportApkg" class="btn small">Export APKG (shim)</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="fcCardArea" style="display:none;margin-top:12px;">
-            <!-- Flashcard Timer: centered above the card; click to toggle Always vs Hover-only -->
-            <style>
-                /* Flashcard timer styles */
-                .fc-timer-row{ display:flex; justify-content:center; margin:-4px 0 8px; }
-                .fc-timer{
-                    font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-                    color: var(--ink, #e6edf3);
-                    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-                    border: 1px solid rgba(255,255,255,0.10);
-                    padding: 6px 10px; border-radius: 999px;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-                    cursor: pointer; -webkit-user-select: none; user-select: none;
-                    transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
-                }
-                .fc-timer:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,0.45); }
-                .fc-timer.hover-only{ opacity: 0; pointer-events: none; }
-                #fcCardArea:hover .fc-timer.hover-only{ opacity: 1; pointer-events: auto; }
-                .fc-timer.pulse{ animation: fcTimerPulse 300ms ease; }
-                @keyframes fcTimerPulse{ 0%{ transform: scale(1); } 50%{ transform: scale(1.07); } 100%{ transform: scale(1); } }
-            </style>
-            <div id="fcTimerRow" class="fc-timer-row"><div id="fcTimer" class="fc-timer" title="Click to toggle: Always visible ↔ Show on hover">00:00</div></div>
-            <div id="fcCard" style="min-height:180px;border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(8,12,18,1), rgba(6,10,14,1));border:1px solid rgba(255,255,255,0.04);box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-                <div id="fcFront" style="font-weight:700;font-size:16px;color:var(--ink);">Question</div>
-                <div id="fcBack" style="margin-top:12px;color:var(--muted);display:none;">Answer</div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-                <button id="fcFlip" class="btn">Flip</button>
-                <div style="margin-left:auto;display:flex;gap:6px;">
-                    <button id="fcAgain" class="btn" title="Again">Again</button>
-                    <button id="fcHard" class="btn" title="Hard">Hard</button>
-                    <button id="fcGood" class="btn primary" title="Good">Good</button>
-                    <button id="fcEasy" class="btn" title="Easy">Easy</button>
-                </div>
-            </div>
-            <div id="fcProgress" class="hint mt-8">Session: <span id="fcProgressText">0 / 0</span></div>
-        </div>
-    </section>
+    <!-- Flashcards panel moved earlier in the document -->
 
         <!-- === Post-Quiz Results & AI Feedback (mirrors validate/like style) === -->
         <section id="results-card" class="card pad hidden">
@@ -8939,6 +8940,19 @@ Version: 1.0
 
     function enableStart(enable){ const s = $('fcStartSession'); if(s) s.disabled = !enable; }
 
+    // Expose a safe global setter so other modules (e.g., parser) can overwrite the deck reliably
+    try{ window.fcSetDeckFromItems = function(items){ try{
+        const hasItems = Array.isArray(items) && items.length > 0;
+        fcDeck = hasItems ? items.map((it, ix)=>({ id: it.num || (ix+1), q: it.q || it.text || '', a: (Array.isArray(it.choices) && typeof it.correctIdx === 'number') ? (it.choices[it.correctIdx] || '') : '', choices: Array.isArray(it.choices)? it.choices.slice() : [], ix })) : null;
+        // Reset any in-progress session and refresh UI
+        fcSession = null;
+        renderDeckInfo();
+        enableStart(!!hasItems);
+        try{ const prog = $('fcProgressText'); if(prog) prog.textContent = `0 / ${hasItems ? (items.length||0) : 0}`; }catch(e){}
+        // Hide card area if deck cleared
+        if(!hasItems){ try{ const area = $('fcCardArea'); const info = $('fcDeckInfo'); if(area) area.style.display='none'; if(info) info.style.display=''; }catch(e){} }
+    }catch(e){ console.warn('fcSetDeckFromItems failed', e); } } }catch(e){}
+
     // Load from parsed items (state.items)
     $('fcFromParsed')?.addEventListener('click', (e)=>{
         try{
@@ -9446,8 +9460,29 @@ Version: 1.0
         }catch(err){ console.error('fcExportApkg', err); alert('APKG shim export failed: ' + (err?.message||err)); }
     });
 
-    // small helpers: expose reload of deck from parsed automatically when deck not present
-    try{ if(!fcDeck && (window.state && state.items && state.items.length)){ /* leave to user to click Load from parsed */ } }catch{}
+    // small helpers: auto-load deck from parsed items when available (auto-invoke previous 'Load from parsed')
+    (function autoLoadFcFromParsed(){
+        try{
+            function tryLoad(){
+                try{
+                    const items = (window.__quizState && window.__quizState.items) ? window.__quizState.items : (window.state && state.items) ? state.items : [];
+                    if(items && items.length){
+                        fcDeck = items.map((it, ix)=>({ id: it.num || (ix+1), q: it.q || it.text || '', a: (Array.isArray(it.choices) && typeof it.correctIdx === 'number') ? (it.choices[it.correctIdx] || '') : '', choices: Array.isArray(it.choices)? it.choices.slice() : [], ix }));
+                        renderDeckInfo(); enableStart(true);
+                        return true;
+                    }
+                }catch(e){ console.warn('tryLoad flashcards failed', e); }
+                return false;
+            }
+
+            if(tryLoad()) return;
+            // Poll briefly in case parsing completes shortly after this script runs
+            let attempts = 0; const maxAttempts = 12; const intervalMs = 500; const iv = setInterval(()=>{
+                attempts++;
+                if(tryLoad() || attempts >= maxAttempts){ try{ clearInterval(iv); }catch(e){} }
+            }, intervalMs);
+        }catch(e){ console.warn('autoLoadFcFromParsed failed', e); }
+    })();
 
     // Listen for SRS updates from other windows (popup) and storage events so the main UI stays in sync.
     try{
@@ -9957,7 +9992,12 @@ Version: 1.0
                     list.appendChild(div);
                 }
                 $('previewCount').textContent = items.length;
-                window.scrollTo({ top: preview.offsetTop - 10, behavior: 'smooth' });
+                try{
+                    // Scroll so the preview module starts ~100px below the top of the viewport
+                    const rect = preview.getBoundingClientRect();
+                    const target = Math.max(0, (rect.top + (window.scrollY||window.pageYOffset||0)) - 100);
+                    window.scrollTo({ top: target, behavior: 'smooth' });
+                }catch(e){ window.scrollTo({ top: Math.max(0, (preview.offsetTop||0) - 100), behavior: 'smooth' }); }
                 try{ setTimeout(()=>{ try{ window.renderMathIn && window.renderMathIn(list); }catch(e){} }, 80); }catch(e){}
             }
 
@@ -10278,6 +10318,8 @@ Version: 1.0
                                 // Cancel any lingering speech and speak
                                 try{ speechSynthesis.cancel(); }catch(e){}
                                 const u = new SpeechSynthesisUtterance(speak);
+                                // Lower spoken voice volume to avoid being too loud by default (0.0 - 1.0)
+                                try{ u.volume = 0.5; }catch(e){}
                                 try{ u.lang = document.documentElement.lang || 'en-US'; }catch(e){}
                                 // Save globals so other code can stop playback
                                 window.__ttsUtterance = u;
@@ -10889,7 +10931,13 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                 // mark that the document has been parsed so UI hides (AI cards) only after parse
                 try{ window.__parsed = true; }catch{}
                 renderPreview(state.items); hideSkipped();
+                // Enable Start Quiz only when there are parsed items
+                try{ const sbtn = document.getElementById('startBtn'); if(sbtn) sbtn.disabled = !(state.items && state.items.length); }catch(e){}
+                // Overwrite Flashcards deck via global setter (avoids scope/timing issues)
+                try{ if(typeof window.fcSetDeckFromItems === 'function'){ window.fcSetDeckFromItems(state.items || []); } }catch(e){ console.warn('fcSetDeckFromItems call failed', e); }
             }
+            // Ensure Start Quiz is disabled until a successful parse
+            try{ const sbtnInit = document.getElementById('startBtn'); if(sbtnInit) sbtnInit.disabled = true; }catch(e){}
             $('parseBtn').onclick = doParse;
 
         // Keyboard shortcuts: answer selection, submit/next, skip
@@ -11152,21 +11200,31 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
                 const elTotal = document.getElementById('savedTotalKb'); if(elTotal) elTotal.textContent = `Total: ${(totalBytes/1024).toFixed(1)} KB`;
             }catch(e){}
             if(!arr.length){ savedList.innerHTML = '<div class="hint">No saved items yet. Use "Save MCQ" to save your paste.</div>'; return; }
-                savedList.innerHTML = arr.map((it, i)=>
-                    `<div class="saved-item" data-i="${i}">
+                savedList.innerHTML = arr.map((it, i)=>{
+                    // Determine number of questions in this saved MCQ text. Prefer parseDoc if available.
+                    let qCount = 0;
+                    try{
+                        if(typeof parseDoc === 'function'){
+                            const parsed = parseDoc(it.text || ''); qCount = (parsed && parsed.length) ? parsed.length : 0;
+                        } else if(it.text){ const m = String(it.text).match(/^\s*Q\s*\d+\./gim); qCount = m ? m.length : 0; }
+                    }catch(e){ qCount = 0; }
+                    const safeTitle = (it.title||'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+                    const date = it.date || '';
+                    const qcountHtml = `<span class="si-qcount" style="margin-left:8px;color:var(--muted);font-size:12px">· ${qCount} Q</span>`;
+                    return `<div class="saved-item" data-i="${i}">
                         <div class="si-main">
-                                <div class="si-title" contenteditable="true" spellcheck="false">${(it.title||'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
-                                <div class="si-meta">${it.date||''}</div>
+                                <div class="si-title"><span class="si-title-text" contenteditable="true" spellcheck="false">${safeTitle}</span>${qcountHtml}</div>
+                                <div class="si-meta">${date}</div>
                             </div>
                             <div class="si-actions">
                                 <button class="btn small" data-act="export">Export</button>
                                 <button class="btn small" data-act="delete">Delete</button>
                             </div>
-                    </div>`
-                ).join('');
+                    </div>`;
+                }).join('');
             savedList.querySelectorAll('.saved-item').forEach(el=>{
-                // Inline title editing
-                const titleEl = el.querySelector('.si-title');
+                // Inline title editing (editable span only)
+                const titleEl = el.querySelector('.si-title-text');
                 const idx = Number(el.getAttribute('data-i'));
                 function commitTitle(newTitle){
                     const arr2 = loadAll(); const itm = arr2[idx]; if(!itm) return;
@@ -11333,8 +11391,12 @@ Correct answer: ${letters[it.correctIdx]}. ${it.choices[it.correctIdx]}`;
         refreshBtn && refreshBtn.addEventListener('click', render);
         clearBtn && clearBtn.addEventListener('click', ()=>{ if(confirm('Clear all saved MCQ sets?')){ saveAll([]); render(); } });
 
-        // initial render
-        render();
+    // initial render
+    render();
+    // Expose a simple refresh function for other modules (e.g., AI preview save) so
+    // they can refresh the saved MCQ list without relying on a DOM button that
+    // may not exist in some builds.
+    try{ window.refreshLocalSaved = render; }catch(e){}
 
         // Bulk export for localStorage saved MCQs (zips each saved item into .txt files)
         async function exportAllLocalSaved(){ try{
@@ -11814,7 +11876,7 @@ ${original}`;
                                     existing.unshift(item);
                                     try{ localStorage.setItem(key, JSON.stringify(existing)); }catch(e){ console.warn('Could not save generated item', e); }
                                     stat.textContent = 'Saved generated MCQs.';
-                                    document.getElementById('refreshSavedBtn')?.click();
+                                    try{ window.refreshLocalSaved && window.refreshLocalSaved(); }catch(e){}
                                 }catch(e){ console.error('save generated failed', e); stat.textContent = 'Save failed.'; }
                                 // tag propagation removed
                                 return;
@@ -12405,7 +12467,7 @@ ${original}`;
                                     existing.unshift(item);
                                     try{ localStorage.setItem(key, JSON.stringify(existing)); }catch(e){ console.warn('Could not save generated item', e); }
                                     stat.textContent = 'Saved generated MCQs.';
-                                    document.getElementById('refreshSavedBtn')?.click();
+                                    try{ window.refreshLocalSaved && window.refreshLocalSaved(); }catch(e){}
                                 }catch(e){ console.error('save generated failed', e); stat.textContent = 'Save failed.'; }
                                 // tag propagation removed
                                 return;
@@ -12704,7 +12766,7 @@ window.showValidatorApplyButton = function(mismatches){
                         dst.parentNode.insertBefore(btn, dst.nextSibling);
                     }
                 }
-                try{ btn.scrollIntoView({behavior:'smooth', block:'nearest'}); }catch(e){}
+                try{ btn.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){}
             } else {
                 // Fallback to floating position near output rect if present
                 try{ window.showFloatingApply && window.showFloatingApply(mismatches, dst); }catch(_){ }
@@ -12754,7 +12816,7 @@ window.showFloatingApply = function(mismatches, dstElement){
         }
         wrap.style.left = left + 'px'; wrap.style.top = top + 'px'; wrap.style.display = 'block';
         // ensure visible
-        try{ wrap.scrollIntoView({behavior:'smooth', block:'nearest'}); }catch(e){}
+    try{ wrap.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){}
     }catch(e){ console.error('showFloatingApply', e); }
 };
 
@@ -13344,7 +13406,7 @@ window.answerValidator = {
                             try{ localStorage.setItem(key, JSON.stringify(existing)); }catch(e){ console.warn('Could not save generated item', e); }
                             setStatus('Saved generated MCQs.');
                             // refresh saved UI if present
-                            document.getElementById('refreshSavedBtn')?.click();
+                            try{ window.refreshLocalSaved && window.refreshLocalSaved(); }catch(e){}
                         }catch(e){ console.error('save generated failed', e); setStatus('Save failed: '+(e?.message||e)); }
                         return;
                     }
@@ -14493,7 +14555,7 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
         }
 
     // Master gain to control overall loudness
-    const master = ctx.createGain(); master.gain.value = 6.0; /* set to 200% global volume (increased two-fold) */ master.connect(ctx.destination);
+    const master = ctx.createGain(); master.gain.value = 0.4; /* lowered global volume (was high by default) */ master.connect(ctx.destination);
 
         // Create a short voiced/unvoiced pulse that combines an oscillator (voiced)
         // and filtered noise (unvoiced). The sound is intentionally noisy and
@@ -14579,7 +14641,11 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     mouth.textContent = open ? '▂' : '___';
                 }catch(e){}
             }
-            function scrollToBottom(){ try{ page.scrollTop = page.scrollHeight; }catch{} }
+            function scrollToBottom(){ try{ // leave a small top padding so auto-scroll doesn't pin content flush to the top
+                    var TOP_PAD = 64; // px of space to preserve at the top when auto-scrolling
+                    var target = Math.max(0, (page.scrollHeight || 0) - (page.clientHeight || 0) - TOP_PAD);
+                    page.scrollTop = target;
+                }catch{} }
             function done(){ try{ setMouth(false); scrollToBottom(); }catch{}; resolve(); }
             function step(){
                 if(controller && controller.aborted){ // immediate show full text and stop
