@@ -1075,7 +1075,12 @@
         }
 
         /* Ensure quiz choice rows have horizontally aligned radio dots and label text */
-        .qcard .choice{ display:flex; align-items:center; gap:10px; }
+    .qcard .choice{ display:flex; align-items:center; gap:10px; }
+    /* Fine-tune vertical alignment: ensure radio orb and text block center relative to total box height */
+    .qcard .choice{ line-height:1.25; }
+    .qcard .choice strong{ align-self:center; }
+    /* Force radio to use flexbox centering instead of baseline quirks */
+    .qcard .choice input[type="radio"]{ margin-top:0; }
     /* Elevate choice rows so radios sit above sticky notes / overlays without altering layout */
     .qcard .choice{ position:relative; z-index: 5000; }
         .qcard .choice input[type="radio"]{
@@ -1135,7 +1140,7 @@
         .qcard .choice strong{ width: 1.8em; display:inline-block }
 
     /* Choice body: make the text a block-level flex child so the radio vertically centers to the box, not the text baseline */
-    .qcard .choice .choice-body{ display:block; flex:1 1 auto; min-width:0 }
+    .qcard .choice .choice-body{ display:block; flex:1 1 auto; min-width:0; align-self: center; }
 
         .footer {
             margin-top: 18px;
