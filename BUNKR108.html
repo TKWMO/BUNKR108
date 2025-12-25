@@ -374,6 +374,43 @@
             padding: 0 16px
         }
 
+        /* Mobile parity: prevent iOS focus-zoom and reduce fixed-overlay collisions */
+        @media (max-width: 640px){
+            input[type="text"],
+            input[type="password"],
+            input[type="number"],
+            input[type="search"],
+            input[type="email"],
+            input[type="url"],
+            select,
+            textarea{
+                font-size: 16px;
+            }
+        }
+
+        /* Sticky notes UI is desktop-first; hide on small screens to avoid overlaps */
+        @media (max-width: 980px){
+            :root{ --stickyScale: 0; }
+            .sticky-dock,
+            .sticky-panel,
+            .sticky-rail,
+            .sticky-rail-hoverzone,
+            .sticky-rail-resizer,
+            #stickyRailResizer,
+            #stickyDock,
+            #stickyPanel,
+            #stickyRail,
+            #stickyRailHoverzone,
+            #leftMagnet,
+            #leftTabHoverzone,
+            #leftTabResizer,
+            #leftMagnetTab,
+            .left-tab-hoverzone,
+            .left-tab-resizer{
+                display:none !important;
+            }
+        }
+
         /* When a quiz is running, hide the Random/Daily quiz controls to avoid accidental navigation */
         body.quiz-running #dailyQuizBtn,
         body.quiz-running #randomQuizBtn,
@@ -481,6 +518,7 @@
             border-radius: 12px;
             font-size: 13px;
             line-height: 1;
+            -webkit-user-select: none;
             user-select: none;
         }
         #setup .options-container .btn.opt-cube input[type="checkbox"]{
@@ -997,6 +1035,9 @@
         border: 1px solid var(--btnBorder); padding: 4px 8px; font-size: 12px;
         box-shadow: inset 0 2px 6px rgba(0,0,0,.25);
     }
+    @media (max-width: 640px){
+        .pill input[type="number"], input.themed-input[type="number"]{ font-size: 16px; }
+    }
     .pill input[type="number"]:focus, input.themed-input[type="number"]:focus{
         outline: 2px solid var(--brand); outline-offset: 2px;
     }
@@ -1006,7 +1047,7 @@
     input[type="number"]{ -moz-appearance: textfield; appearance: textfield; }
         /* News bar styles (glassy) */
         .news-bar{ position: fixed; left:0; right:0; top: 0; z-index: 240; /* below theme capsule (z 5+) */
-            width: 100vw; box-sizing: border-box; padding: 0 14px; height: 46px;
+            width: 100%; box-sizing: border-box; padding: 0 14px; height: 46px;
             border-bottom: 2px solid rgba(80,100,140,.6); border-radius: 0;
             background: linear-gradient(180deg, rgba(18,26,36,.68), rgba(6,10,14,.56));
             -webkit-backdrop-filter: blur(12px) saturate(120%); backdrop-filter: blur(12px) saturate(120%);
@@ -1351,7 +1392,7 @@
             .sticky-panel .sd-btn{ appearance:none; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); font-weight:800; font-size:12px; padding:6px 10px; border-radius:999px; cursor:pointer }
             .sticky-panel .sd-btn.small{ font-weight:700; padding:4px 8px; font-size:11px }
             .sticky-panel .sd-btn:hover{ filter:brightness(1.06) }
-            .sticky-panel .sd-btn:focus-visible{ outline: 2px solid color-mix(in srgb, var(--brand) 45%, transparent); outline-offset: 2px }
+            .sticky-panel .sd-btn:focus-visible{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
             .sticky-dock .sd-count{ min-width:20px; height:20px; border-radius:999px; background: rgba(255,255,255,.08); border:1px solid rgba(60,80,120,.45); display:inline-flex; align-items:center; justify-content:center; font-size:12px; color: var(--ink) }
             .sticky-panel{ position:fixed; right: calc(12px + env(safe-area-inset-right)); top: calc(64px + env(safe-area-inset-top) + 280px + var(--topSafeArea) + var(--stickyTopGap)); z-index:191; width: min(420px, 92vw); max-height: 50vh; overflow:auto; padding:10px; border-radius:14px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, rgba(16,25,40,.92), rgba(10,16,28,.92)); box-shadow: var(--depth); transform-origin: top right; transform: scaleY(var(--stickyScale)); }
             .sticky-panel.hidden{ display:none }
@@ -1434,22 +1475,25 @@
                 font-size:10px;
                 line-height:1.15;
                 font-weight:800;
-                color: color-mix(in srgb, var(--muted) 88%, var(--ink));
+                color: var(--muted);
                 overflow: hidden;
                 display: -webkit-box;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 2;
+                line-clamp: 2;
                 white-space: normal;
                 pointer-events: none;
+                -webkit-user-select: none;
                 user-select: none;
             }
             /* Minimal: do not show note text inside cells (prevents any layout growth) */
             .calendar-panel .cal-day .p{ display:none }
             .calendar-panel .cal-day.has-note::after{ content:''; position:absolute; right:10px; top:10px; width:7px; height:7px; border-radius:50%; background: var(--brand); box-shadow: 0 0 12px var(--brand); opacity:.95 }
-            .calendar-panel .cal-day.today{ outline: 2px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 2px }
-            .calendar-panel .cal-day.selected{ border-color: color-mix(in srgb, var(--brand) 55%, rgba(60,80,120,.35));
-                background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 22%, rgba(14,20,32,.55)), rgba(10,16,28,.55));
-                box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 1px color-mix(in srgb, var(--brand) 30%, transparent);
+            .calendar-panel .cal-day.today{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
+            .calendar-panel .cal-day.selected{
+                border-color: rgba(60,80,120,.55);
+                background: linear-gradient(180deg, rgba(14,20,32,.55), rgba(10,16,28,.55));
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 1px rgba(96,165,250,.18);
             }
             .calendar-panel .cal-editor{ margin-top:10px; padding-top:10px; border-top:1px solid rgba(60,80,120,.28); display:flex; flex-direction:column; gap:8px }
             .calendar-panel .cal-editor .cal-row{ display:flex; gap:8px; align-items:center }
@@ -1470,10 +1514,10 @@
                 outline:none;
                 box-sizing:border-box;
             }
-            .calendar-panel .cal-title-input:focus{ outline: 2px solid color-mix(in srgb, var(--brand) 40%, transparent); outline-offset: 2px }
+            .calendar-panel .cal-title-input:focus{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
             .calendar-panel .cal-title-input:disabled{ opacity:.55 }
             .calendar-panel .cal-note{ width:100%; height: 110px; min-height: 110px; max-height: 110px; resize: none; overflow:auto; border-radius: 12px; background:#0c1526; color: var(--ink); border:1px solid var(--btnBorder); padding:10px 10px; font-size:12px; line-height:1.35; outline:none; box-sizing:border-box }
-            .calendar-panel .cal-note:focus{ outline: 2px solid color-mix(in srgb, var(--brand) 40%, transparent); outline-offset: 2px }
+            .calendar-panel .cal-note:focus{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
         </style>
 
     <style>
@@ -2014,12 +2058,12 @@
                 <div class="modal-header"><h3>Random Quiz — category / search</h3><button id="randomCategoryClose" class="btn">Close</button></div>
                 <div class="modal-body">
                     <div class="hint">Narrow the random quiz to pages matching a Wikipedia search. Type a few words, choose from results, and click Save.</div>
-                    <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
-                        <input id="categorySearch" placeholder="Search Wikipedia (e.g., 'biochemistry enzymes')" style="flex:1; padding:8px; font-size:14px" />
+                    <div class="rcm-row">
+                        <input id="categorySearch" class="rcm-search" placeholder="Search Wikipedia (e.g., 'biochemistry enzymes')" />
                         <button id="categoryClear" class="btn">Clear</button>
                     </div>
                     <div id="categorySearchResults" aria-live="polite"></div>
-                    <div style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end"><button id="categorySaveBtn" class="btn primary">Save</button></div>
+                    <div class="rcm-actions"><button id="categorySaveBtn" class="btn primary">Save</button></div>
                 </div>
             </div>
         </div>
@@ -3416,7 +3460,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <div id="calendarPanel" class="sticky-panel calendar-panel hidden" role="region" aria-label="Calendar">
         <div class="cal-head">
             <button id="calPrev" class="sd-btn small" title="Previous month" aria-label="Previous month">‹</button>
-            <div style="flex:1 1 auto; min-width:0">
+            <div class="cal-head-grow">
                 <div id="calMonthLabel" class="cal-month">Month</div>
                 <div id="calHint" class="cal-sub">Click a day to add a note</div>
             </div>
@@ -4062,7 +4106,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <div id="paletteEditor" class="palette-editor hidden" role="dialog" aria-label="Custom palette editor">
         <div class="pe-header" id="peHeader" tabindex="0">
             <span>Customize Interface</span>
-            <div style="display:flex; gap:6px; align-items:center">
+            <div class="pe-actions">
                 <button id="peReset" class="btn small" title="Reset">Reset</button>
                 <button id="peClose" class="btn small" aria-label="Close">×</button>
             </div>
@@ -4082,7 +4126,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
         <!-- Light Mode toggle: inverts the UI while preserving palette colors for the theme orbs -->
         <button id="enableLightModeBtn" class="btn pill" title="Enable Inverted Display" aria-pressed="false">Enable Inverted Display</button>
         <!-- Invert Timer mini side-menu (sits to the right of the inverted display button) -->
-        <div id="invertTimerMenu" class="news-side-menu" aria-hidden="false" style="display:inline-flex">
+        <div id="invertTimerMenu" class="news-side-menu invert-timer-menu" aria-hidden="false">
             <button id="invertTimerToggle" class="btn pill news-menu-toggle" aria-expanded="false" aria-controls="invertTimerMenuContent" title="Set auto-flip speed">⏱</button>
             <div id="invertTimerMenuContent" class="news-side-menu-content" role="menu" aria-hidden="true">
                 <div class="news-side-pill minimalist" role="presentation">
@@ -6371,7 +6415,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     <h1>Load Questions → Quiz</h1>
                     <div class="paste-head">
                         <label for="paste" class="paste-label">Paste your document</label>
-                        <div class="paste-controls" style="display:flex;gap:8px;align-items:center">
+                        <div class="paste-controls">
                             <button id="formatInfoBtn" class="btn paste-format-btn" type="button">Format Information</button>
                             <button id="quickStartBtn" class="btn paste-format-btn" type="button">Quick Start</button>
                         </div>
@@ -6650,7 +6694,20 @@ ANSWER KEY
 .modal.hidden{ display:none }
 .modal{ position: fixed; inset: 0; display:flex; align-items: center; justify-content: center; z-index: 22010; }
 .modal-backdrop{ position:absolute; inset:0; background:rgba(2,6,12,0.6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
-.modal-panel{ position:relative; z-index:2; width: min(920px, 96vw); max-height: calc(100vh - 96px); overflow:auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: auto; border-radius:12px; padding:16px; background: linear-gradient(180deg, rgba(8,12,18,.98), rgba(6,10,14,.98)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+.modal-panel{ position:relative; z-index:2; width: min(920px, 96vw); max-height: calc(100vh - 96px); overflow:auto; overscroll-behavior: contain; touch-action: auto; border-radius:12px; padding:16px; background: linear-gradient(180deg, rgba(8,12,18,.98), rgba(6,10,14,.98)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+@supports (-webkit-overflow-scrolling: touch){
+    .modal-panel{ -webkit-overflow-scrolling: touch; }
+}
+@supports (height: 100dvh){
+    .modal-panel{ max-height: calc(100dvh - 96px); }
+}
+@media (max-width: 640px){
+    html.modal-open, html.modal-open body{ overflow:hidden; }
+    .modal-panel{ width: min(920px, 96vw); max-height: calc(100vh - 24px); padding: 14px; }
+    @supports (height: 100dvh){
+        .modal-panel{ max-height: calc(100dvh - 24px); }
+    }
+}
 .modal-open, html.modal-open{ /* modal-open intentionally does not lock overflow so modal-panel can scroll on touch devices */ display:block }
 .modal-open body, html.modal-open body{ /* intentionally no-op but keep rule non-empty for linters */ min-height:100% }
 .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px }
@@ -6665,6 +6722,66 @@ ANSWER KEY
 .seeall-match-left{ font-weight:700; color:var(--muted); }
 .seeall-choice.correct{ color: #4dd17a; }
 .seeall-choice.correct strong{ color: #4dd17a }
+
+/* Inline-style replacements (mobile consistency + lint cleanup) */
+.paste-controls{ display:flex; gap:8px; align-items:center; }
+
+.rcm-row{ margin-top:12px; display:flex; gap:8px; align-items:center; }
+.rcm-search{ flex:1 1 auto; min-width: 0; padding:8px; font-size:14px; border-radius:10px; background:#0c1526; color:var(--ink); border:1px solid var(--btnBorder); box-sizing:border-box; }
+.rcm-actions{ margin-top:10px; display:flex; gap:8px; justify-content:flex-end; }
+
+.fc-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.fc-head-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+.fc-deck-info{ font-size:13px; }
+.fc-head-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.fc-card-area{ display:none; margin-top:12px; }
+.fc-card{ min-height:180px; border-radius:12px; padding:18px; background:linear-gradient(180deg, rgba(8,12,18,1), rgba(6,10,14,1)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+.fc-front{ font-weight:700; font-size:16px; color:var(--ink); }
+.fc-back{ margin-top:12px; color:var(--muted); display:none; }
+.fc-controls{ display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+.fc-grades{ margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+
+/* Modal sizing (replaces inline styles) */
+#formatInfoModal .modal-panel.format-info-panel{ max-width: 600px; width: 90%; }
+#quickStartModal .modal-panel.quick-start-panel{ max-width: 900px; width: 92%; }
+@media (max-width: 640px){
+    #formatInfoModal .modal-panel.format-info-panel,
+    #quickStartModal .modal-panel.quick-start-panel{ width: 96%; }
+}
+
+/* Remaining inline-style replacements */
+.cal-head-grow{ flex: 1 1 auto; min-width: 0; }
+.pe-actions{ display:flex; gap:6px; align-items:center; }
+.invert-timer-menu{ display:inline-flex; }
+
+.lint-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.preview-footer-center{ flex:1; display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; }
+.preview-export-highlight{ display:flex; align-items:center; gap:8px; }
+
+.guide-text{ font-size: 14px; color: var(--ink); }
+.guide-text-format{ line-height: 1.6; }
+.guide-text-quickstart{ line-height: 1.65; }
+.guide-first{ margin-top: 0; }
+.guide-last{ margin-bottom: 0; }
+.guide-h{ margin: 14px 0 8px; }
+
+#dailyBuildModal .modal-panel.daily-build-panel{ max-width: 880px; width: 90%; }
+@media (max-width: 640px){ #dailyBuildModal .modal-panel.daily-build-panel{ width: 96%; } }
+.daily-build-title{ margin-bottom: 10px; font-weight: 800; }
+.daily-build-spinner{ display:flex; align-items:center; gap:12px; }
+
+.flex-spacer{ flex: 1 1 auto; }
+
+.saved-results-panel{ margin: 12px 0; clear: both; }
+.saved-results-card{ margin: 0; }
+.last-attempt-block{ margin-top:12px; border-top:1px solid rgba(255,255,255,0.04); padding-top:10px; }
+
+.ai-likeq-copy-panel{ position:relative; z-index:0; pointer-events:auto; }
+
+.gemini-status-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.gemini-status-link{ margin-left:6px; text-decoration: underline; }
+
+.reset-bar{ margin-bottom:18px; }
 </style>
 <style>
 /* TOS modal and widget styles */
@@ -6676,12 +6793,12 @@ ANSWER KEY
 </style>
     <!-- Flashcards / SRS Panel (moved above Preview) -->
     <section id="flashcardsPanel" class="card pad">
-        <div class="module-outline" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:12px">
+        <div class="module-outline fc-head">
+            <div class="fc-head-left">
                 <h3 class="mt-0 m-0">Flashcards & SRS</h3>
-                <div id="fcDeckInfo" class="hint" style="font-size:13px;color:var(--muted);">No deck loaded.</div>
+                <div id="fcDeckInfo" class="hint fc-deck-info">No deck loaded.</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div class="fc-head-actions">
                 <button id="fcStartSession" class="btn primary small" disabled>Start Session</button>
                 <div class="dropdown">
                     <button id="fcExportCsv" class="btn small">Export CSV</button>
@@ -6690,7 +6807,7 @@ ANSWER KEY
             </div>
         </div>
 
-        <div id="fcCardArea" style="display:none;margin-top:12px;">
+        <div id="fcCardArea" class="fc-card-area">
             <!-- Flashcard Timer: centered above the card; click to toggle Always vs Hover-only -->
             <style>
                 /* Flashcard timer styles */
@@ -6713,13 +6830,13 @@ ANSWER KEY
                 @keyframes fcTimerPulse{ 0%{ transform: scale(1); } 50%{ transform: scale(1.07); } 100%{ transform: scale(1); } }
             </style>
             <div id="fcTimerRow" class="fc-timer-row"><div id="fcTimer" class="fc-timer" title="Click to toggle: Always visible ↔ Show on hover">00:00</div></div>
-            <div id="fcCard" style="min-height:180px;border-radius:12px;padding:18px;background:linear-gradient(180deg, rgba(8,12,18,1), rgba(6,10,14,1));border:1px solid rgba(255,255,255,0.04);box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
-                <div id="fcFront" style="font-weight:700;font-size:16px;color:var(--ink);">Question</div>
-                <div id="fcBack" style="margin-top:12px;color:var(--muted);display:none;">Answer</div>
+            <div id="fcCard" class="fc-card">
+                <div id="fcFront" class="fc-front">Question</div>
+                <div id="fcBack" class="fc-back">Answer</div>
             </div>
-            <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <div class="fc-controls">
                 <button id="fcFlip" class="btn">Flip</button>
-                <div style="margin-left:auto;display:flex;gap:6px;">
+                <div class="fc-grades">
                     <button id="fcAgain" class="btn" title="Again">Again</button>
                     <button id="fcHard" class="btn" title="Hard">Hard</button>
                     <button id="fcGood" class="btn primary" title="Good">Good</button>
@@ -6740,7 +6857,7 @@ ANSWER KEY
                         <div class="lint-title">Parser Check</div>
                         <div id="lintSummary" class="hint">No lint results yet.</div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center">
+                    <div class="lint-actions">
                         <button class="btn small" id="lintRenumberBtn" type="button" title="Renumber questions sequentially in the current parsed deck" disabled>Renumber</button>
                         <button class="btn small" id="lintRemoveDupesBtn" type="button" title="Remove duplicated question numbers (keeps first occurrence)" disabled>Remove dupes</button>
                         <button class="btn small" id="lintHideBtn" type="button">Hide</button>
@@ -6750,9 +6867,9 @@ ANSWER KEY
             </div>
             <div class="footer">
                 <span class="hint"><span id="previewCount">0</span> items parsed.</span>
-                <div style="flex:1;display:flex;justify-content:center;align-items:center;gap:10px">
+                <div class="preview-footer-center">
                     <button class="btn" id="exportPdfBtn" title="Export preview to PDF">Export PDF</button>
-                    <div style="display:flex;align-items:center;gap:8px">
+                    <div class="preview-export-highlight">
                         <label class="switch" title="Highlight correct answers in exported PDF (green)">
                             <input type="checkbox" id="exportPdfHighlight" />
                             <span class="slider"></span>
@@ -6947,11 +7064,11 @@ ANSWER KEY
         <!-- Format Info Modal -->
         <div id="formatInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Format Information">
             <div class="modal-backdrop"></div>
-            <div class="modal-panel" style="max-width:600px; width:90%;">
+            <div class="modal-panel format-info-panel">
                 <div class="modal-header"><h3>Format Information</h3><button id="formatInfoClose" class="btn">Close</button></div>
                 <div class="modal-body">
-                    <div class="hint" style="font-size: 14px; line-height: 1.6; color: var(--ink);">
-                        <p style="margin-top:0"><strong>Standard MCQ:</strong><br>
+                    <div class="hint guide-text guide-text-format">
+                        <p class="guide-first"><strong>Standard MCQ:</strong><br>
                         <span class="tag">Q1. Question text...</span><br>
                         Options start with <span class="tag">-</span> (e.g., <span class="tag">- Option A</span>).<br>
                         Add an <strong>ANSWER KEY</strong> at the end:<br>
@@ -6971,7 +7088,7 @@ ANSWER KEY
                         Use lines like <span class="tag">- Left Item -> Right Item</span>.<br>
                         Optional extras: <span class="tag">- Extras: distractor1 | distractor2</span>.</p>
 
-                        <p style="margin-bottom:0"><em>Advanced: JSON question banks are also supported.</em></p>
+                        <p class="guide-last"><em>Advanced: JSON question banks are also supported.</em></p>
                     </div>
                 </div>
             </div>
@@ -6980,16 +7097,16 @@ ANSWER KEY
         <!-- Quick Start Modal (paired with Format Information button) -->
         <div id="quickStartModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Quick Start">
             <div class="modal-backdrop"></div>
-            <div class="modal-panel" style="max-width:900px; width:92%;">
+            <div class="modal-panel quick-start-panel">
                 <div class="modal-header"><h3>Quick Start — Full Guide</h3><button id="quickStartClose" class="btn">Close</button></div>
                 <div class="modal-body">
-                    <div class="hint" style="font-size: 14px; line-height: 1.65; color: var(--ink);">
-                        <p style="margin-top:0">
+                    <div class="hint guide-text guide-text-quickstart">
+                        <p class="guide-first">
                             This app is a <strong>single-file, fully local quiz engine</strong>. Your pasted document is parsed into a deck,
                             then you can quiz, export, save, and back up your data.
                         </p>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">1) The core workflow (fast path)</h4>
+                        <h4 class="mt-10 guide-h">1) The core workflow (fast path)</h4>
                         <ol>
                             <li><strong>Paste</strong> MCQs (or load a <span class="tag">.txt</span> file).</li>
                             <li>Click <strong>Parse & Preview</strong>.</li>
@@ -6997,7 +7114,7 @@ ANSWER KEY
                             <li>Click <strong>Start Quiz</strong>.</li>
                         </ol>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">2) Input formats (what the parser expects)</h4>
+                        <h4 class="mt-10 guide-h">2) Input formats (what the parser expects)</h4>
                         <ul>
                             <li><strong>MCQ:</strong> <span class="tag">Q1.</span> then options as <span class="tag">-</span> lines, then an <strong>ANSWER KEY</strong> at the end.</li>
                             <li><strong>True/False:</strong> add <span class="tag">[TF]</span> to the question; key with <span class="tag">True</span>/<span class="tag">False</span>.</li>
@@ -7006,7 +7123,7 @@ ANSWER KEY
                             <li><strong>Advanced JSON:</strong> you can paste a JSON bank (array or <span class="tag">{ items: [...] }</span>).</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">3) Parser Check (lint) — what it means</h4>
+                        <h4 class="mt-10 guide-h">3) Parser Check (lint) — what it means</h4>
                         <ul>
                             <li><strong>Errors</strong> usually mean the deck may behave incorrectly (e.g., invalid correct answer index, missing options).</li>
                             <li><strong>Warnings</strong> are common for messy numbering or missing blanks.</li>
@@ -7014,27 +7131,27 @@ ANSWER KEY
                             <li><strong>Remove dupes</strong> drops repeated question numbers (keeps the first occurrence).</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">4) Quiz settings (Options)</h4>
+                        <h4 class="mt-10 guide-h">4) Quiz settings (Options)</h4>
                         <ul>
                             <li><strong>Shuffle questions</strong>: changes order each run.</li>
                             <li><strong>Shuffle answers</strong>: shuffles choices inside each question.</li>
                             <li><strong>Instant feedback</strong>: shows correct/wrong immediately after selection.</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">5) Saving & reusing sets (Saved Sets)</h4>
+                        <h4 class="mt-10 guide-h">5) Saving & reusing sets (Saved Sets)</h4>
                         <ul>
                             <li>Use <strong>Save Set</strong> to store the current pasted document for reuse later.</li>
                             <li>Saved items are stored <strong>locally in your browser</strong> (no server required).</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">6) Exports</h4>
+                        <h4 class="mt-10 guide-h">6) Exports</h4>
                         <ul>
                             <li><strong>Export PDF</strong>: prints the Preview deck (optional highlight correct answers).</li>
                             <li><strong>Export Anki TSV</strong>: downloads a TSV with <strong>Front</strong> and <strong>Back</strong> columns (Anki import-ready).</li>
                             <li><strong>Flashcards & SRS</strong>: a separate practice mode for spaced repetition (use Export CSV / Export Anki TSV as needed).</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">7) AI features (Gemini)</h4>
+                        <h4 class="mt-10 guide-h">7) AI features (Gemini)</h4>
                         <ul>
                             <li>AI features use the <strong>global Gemini API key</strong> at the top of the page.</li>
                             <li><strong>Reformat & Assign Answers (AI)</strong>: fixes formatting and builds an answer key when missing.</li>
@@ -7043,7 +7160,7 @@ ANSWER KEY
                             <li>Tip: if your deck won’t parse cleanly, run the AI reformat first, then Parse & Preview.</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">8) Backup / Restore / Share (local device state)</h4>
+                        <h4 class="mt-10 guide-h">8) Backup / Restore / Share (local device state)</h4>
                         <ul>
                             <li><strong>Backup</strong> exports your browser state to a JSON file (Saved sets, saved textbooks, settings).</li>
                             <li><strong>Restore</strong> can <strong>Merge</strong> (keep existing) or <strong>Overwrite</strong> (replace local state).</li>
@@ -7051,7 +7168,7 @@ ANSWER KEY
                             <li><strong>Share current doc</strong> exports only the current pasted document + quiz options (no keys, no libraries).</li>
                         </ul>
 
-                        <h4 class="mt-10" style="margin:14px 0 8px">9) Troubleshooting checklist</h4>
+                        <h4 class="mt-10 guide-h">9) Troubleshooting checklist</h4>
                         <ul>
                             <li>If the quiz is empty: verify Preview shows items parsed.</li>
                             <li>If answers look wrong: verify your ANSWER KEY numbering matches the questions.</li>
@@ -7059,7 +7176,7 @@ ANSWER KEY
                             <li>If a device/browser change is coming: export a backup first.</li>
                         </ul>
 
-                        <p class="mt-10" style="margin-bottom:0">
+                        <p class="mt-10 guide-last">
                             Want the shortest possible path? Use: <strong>Paste → Parse & Preview → Fix Parser Check (if needed) → Start Quiz</strong>.
                         </p>
                     </div>
@@ -7089,11 +7206,11 @@ ANSWER KEY
         <!-- Daily-build modal (shown while building questions) -->
         <div id="dailyBuildModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Building questions">
             <div class="modal-backdrop"></div>
-            <div class="modal-panel" style="max-width:880px; width:90%;">
+            <div class="modal-panel daily-build-panel">
                     <div class="modal-header"><h3>Building questions…</h3><button id="dailyBuildClose" class="btn">Close</button></div>
                 <div class="modal-body">
-                        <div id="dailyBuildTitle" class="daily-title" style="margin-bottom:10px; font-weight:800;">Today's Random Quiz is about&nbsp;<span id="dailyBuildTopic" class="rainbow">choosing...</span>!</div>
-                    <div id="dailyBuildSpinner" style="display:flex;align-items:center;gap:12px">
+                        <div id="dailyBuildTitle" class="daily-title daily-build-title">Today's Random Quiz is about&nbsp;<span id="dailyBuildTopic" class="rainbow">choosing...</span>!</div>
+                    <div id="dailyBuildSpinner" class="daily-build-spinner">
                         <span class="spinner" aria-hidden="true"></span>
                         <div id="dailyBuildStatus">Preparing…</div>
                     </div>
@@ -7638,7 +7755,7 @@ Version: 1.1
             <div class="flex col center gap-8 mt-8">
                 <div class="key-badge missing" id="resultsKeyBadge" title="Shows whether a Gemini API key is present"><span class="dot"></span><span class="hint">No key set</span></div>
                 <div class="flex center gap-12">
-                    <div style="flex:1; /* export removed from results view per request */"></div>
+                    <div class="flex-spacer" aria-hidden="true"></div>
                     <button id="analyzeMissedBtn" type="button" class="btn primary btn-wide" disabled>Analyze Missed with AI</button>
                 </div>
             </div>
@@ -7647,11 +7764,11 @@ Version: 1.1
         </section>
 
     <!-- Saved Quiz Results Module -->
-    <section id="savedResultsPanel" class="card pad" style="margin: 12px 0; clear: both;">
+    <section id="savedResultsPanel" class="card pad saved-results-panel">
         <!-- Title moved into the saved-card header for contained styling -->
-        <div id="savedQuizzes" class="saved-card" role="region" aria-label="Saved Quiz Results" style="margin: 0;">
+        <div id="savedQuizzes" class="saved-card saved-results-card" role="region" aria-label="Saved Quiz Results">
             <div class="saved-header">
-                <div class="flex center gap-8 saved-header-left" style="align-items:center">
+                <div class="flex center gap-8 saved-header-left">
                     <h3 class="mt-0 m-0">Saved Quiz Results</h3>
                     <div class="saved-badge-wrap"><span id="savedQuizCount">0</span></div>
                     <div id="savedQuizTotal" class="muted fs-12">Total: 0.0 KB</div>
@@ -7667,8 +7784,8 @@ Version: 1.1
             </div>
 
             <!-- Last Attempted Quiz sub-module within same card -->
-            <div class="saved-header" id="lastAttemptBlock" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.04); padding-top:10px;">
-                <div class="flex center gap-8 saved-header-left" style="align-items:center">
+            <div class="saved-header last-attempt-block" id="lastAttemptBlock">
+                <div class="flex center gap-8 saved-header-left">
                     <h3 class="mt-0 m-0">Last Attempted Quiz</h3>
                     <div id="lastAttemptLabel" class="muted fs-12">None yet</div>
                 </div>
@@ -8915,7 +9032,7 @@ Version: 1.1
     </script>
 
         <!-- === AI Like-Question Generator (start-only) === -->
-    <section id="ai-likeq-copy" class="card pad ai-likeq" style="position:relative; z-index:0; pointer-events:auto;">
+    <section id="ai-likeq-copy" class="card pad ai-likeq ai-likeq-copy-panel">
             <div class="flex col center gap-8">
                 <div class="key-badge missing" id="globalKeyBadge2" title="Shows whether a Gemini API key is present"><span class="dot"></span><span class="hint">No key set</span></div>
                 <div id="validatorActionRow" class="flex center gap-12">
@@ -10273,10 +10390,10 @@ Version: 1.1
             
 
             <!-- Gemini status indicator: shows remote/ local API status (green/yellow/red) -->
-            <div id="geminiStatus" class="muted mt-8" style="display:flex;align-items:center;gap:10px">
+            <div id="geminiStatus" class="muted mt-8 gemini-status-row">
                 <span id="geminiStatusDot" class="status-dot status-unknown" aria-hidden="true"></span>
                 <div id="geminiStatusLabel">Gemini status: <strong id="geminiStatusText">unknown</strong></div>
-                <a id="geminiStatusLink" href="https://aistudio.google.com/status" target="_blank" rel="noopener" class="muted" style="margin-left:6px; text-decoration:underline;">status</a>
+                <a id="geminiStatusLink" href="https://aistudio.google.com/status" target="_blank" rel="noopener" class="muted gemini-status-link">status</a>
             </div>
 
             <div class="ai-credit">
@@ -10477,7 +10594,7 @@ Version: 1.1
     </div>
 
     <!-- Reset to Main Menu (shown only during quiz) -->
-    <div id="resetBar" class="mt-12 hidden text-center" style="margin-bottom:18px;">
+    <div id="resetBar" class="mt-12 hidden text-center reset-bar">
         <button id="resetToMenuBtn" class="btn">Return to Main Menu</button>
     </div>
 
