@@ -1,6 +1,6 @@
 # BUNKR108 — AI-Powered Study Interface
 
-**Live demo:** https://tkwmo.github.io/BUNKR108/New_Comp_Test.html
+**Live demo:** https://tkwmo.github.io/BUNKR108/BUNKR108.html
 
 ## Overview
 BUNKR108 is a fully client-side study and quiz-generation interface. It can ingest your own materials, generate MCQs, build flashcards, run spaced-repetition sessions, and optionally use AI (Gemini) for extraction, formatting, analysis, and question generation. All data and API keys remain local to the user’s browser.
