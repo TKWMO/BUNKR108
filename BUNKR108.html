@@ -3554,9 +3554,9 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         /* Hide the base text while flaps are active so things don't look doubled */
                         #bootAsciiAnim .digit.splitting{ color: transparent; }
                         /* Stage 1: top flips up (old value) */
-                        #bootAsciiAnim .digit.flip2::before{ animation: topFlipOut 160ms ease forwards; }
+                        #bootAsciiAnim .digit.flip2::before{ animation: topFlipOut 100ms ease forwards; }
                         /* Stage 2: after we switch data-bottom to the next value, flip it in */
-                        #bootAsciiAnim .digit.bottomIn::after{ animation: bottomFlipIn 220ms ease forwards; }
+                        #bootAsciiAnim .digit.bottomIn::after{ animation: bottomFlipIn 140ms ease forwards; }
                 @keyframes topFlipOut{
                     0%{ transform: perspective(500px) rotateX(0deg); }
                     100%{ transform: perspective(500px) rotateX(-90deg); }
@@ -3624,8 +3624,12 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         host.innerHTML = html; return host.querySelectorAll('.digit');
                     }
                     function spans(){ var host = el(); return host ? host.querySelectorAll('.digit') : null; }
-                    // Per-digit staggered updates: leftmost slow, rightmost fast
-                    var digitDelays = [220, 140, 80, 40, 12]; // ms delays for indices 0..4
+                    // Keep stagger minimal so all digits keep up with a fast countdown.
+                    var digitDelays = [0, 0, 0, 0, 0]; // ms delays for indices 0..4
+                    // Timing constants (keep aligned with CSS animation durations above)
+                    var TOP_FLIP_MS = 100;
+                    var BOTTOM_FLIP_MS = 140;
+                    var FLIP_BUDGET_MS = TOP_FLIP_MS + BOTTOM_FLIP_MS + 80;
                     function updateDigits(str, order){
                         var sp = spans(); if(!sp || sp.length !== 5){ sp = ensureStructure(str); }
                         if(!sp) return;
@@ -3670,8 +3674,8 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                                 d.textContent = target[idx];
                                                 d.classList.remove('flip2','bottomIn','splitting');
                                             }catch(e){}
-                                        }, 240);
-                                    }, 160);
+                                        }, BOTTOM_FLIP_MS + 10);
+                                    }, TOP_FLIP_MS);
                                 }, baseDelay + extra);
                             })(i);
                         }
@@ -3691,15 +3695,18 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     var secondToggle = false; // for every-other-second small jump
                     // Cycle controls: base cycle (will be adapted to popup duration in start())
                     var CYCLE_MS = 10000;
-                    // Global speed multiplier for the countdown (1 = real-time). Will be computed in start() based on `total` so the countdown reaches zero before popup ends.
-                    var SPEED_MULT = 1;
+                    // Fixed rate: 10 minutes per second => 600 virtual seconds per real second.
+                    var VIRTUAL_SECS_PER_REAL_SEC = 600;
+                    // Kept for older logic paths.
+                    var SPEED_MULT = VIRTUAL_SECS_PER_REAL_SEC;
                     var accelUntil = 0;     // timestamp until acceleration applies
                     var accelFactor = 1;    // 1 = normal, >1 = accelerated
                     var viewHoldUntil = 0;  // timestamp to hold a randomly lowered number for ~2s
                     var _cycleTimerId = null;
                     var cyclesSinceGlitch = 0; // count cycles to defer glyphs until we've advanced
-                    // Strict cycle scheduling for 10s loop + glyph linger
-                    var GLYPH_LINGER_MS = 2000; // show hieroglyphs ~2s near cycle end
+                    // Strict cycle scheduling + glyph linger
+                    // Keep this short so the boot overlay feels snappy, but still visibly “completes”.
+                    var GLYPH_LINGER_MS = 900; // show hieroglyphs briefly near the end
                     try{ window.__bootGlyphLingerMs = GLYPH_LINGER_MS; }catch(e){}
                     // Timestamps
                     var overallStartTs = Date.now(); // marks beginning of the boot animation (used for adaptive speed)
@@ -3708,6 +3715,10 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     var shownFinalGlyph = false;
                     var nextStepTs = 0; // next jump update (stepBase-derived)
                     var glitchEndTs = 0; // when to end glyph display
+                    // Display update cadence must not outrun the flip animations.
+                    // If we need to go faster overall, we will skip by larger decrements per update.
+                    var UPDATE_MS = 260;
+                    var flipReadyTs = 0;
                     // Only show glyphs when explicitly allowed (force=true) or when the final glyph time has arrived.
                     // This prevents accidental mid-cycle flashes caused by stray calls.
                     // Synchronized split-flap flip to the ancient glyphs and hold for lingerMs (ms).
@@ -3741,7 +3752,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                     sp[i].classList.add('bottomIn');
                                 }catch(e){}
                             }
-                        }, 200); // slightly after topFlipOut (160ms)
+                        }, TOP_FLIP_MS + 30);
                         // After bottom flip finishes, commit glyphs and leave them visible (ancient)
                         setTimeout(function(){
                             for(var i=0;i<5;i++){
@@ -3753,7 +3764,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             }
                             // Mark inGlitch and set end timestamp
                             try{ inGlitch = true; glitchEndTs = Date.now() + (typeof lingerMs === 'number' ? Math.max(200, lingerMs) : GLYPH_LINGER_MS); }catch(e){}
-                        }, 460); // 200 + 260ms ~ bottomFlipIn duration
+                        }, TOP_FLIP_MS + BOTTOM_FLIP_MS + 110);
                     }
                     function resetToSeedRandom(){
                         var t = fmtFiveFromSecs(START_SECS); // "10800"
@@ -3769,15 +3780,14 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                                 if(now >= glitchEndTs){
                                     inGlitch = false;
                                     // Recalculate currentSecs from overall elapsed so countdown continues smoothly
-                                    var elapsedRealAfter = Math.floor((now - overallStartTs) / 1000);
-                                    var virtualDecAfter = elapsedRealAfter * SPEED_MULT;
-                                    currentSecs = Math.max(0, START_SECS - virtualDecAfter);
+                                    var elapsedMsAfter = (now - overallStartTs);
+                                    var virtualDecAfter = (elapsedMsAfter / 1000) * VIRTUAL_SECS_PER_REAL_SEC;
+                                    currentSecs = Math.max(0, Math.floor(START_SECS - virtualDecAfter));
                                     updateDigits(fmtFiveFromSecs(currentSecs));
                                     // start a fresh cycle window for gating next glitch
                                     cycleStartTs = now;
                                     nextGlitchTs = cycleStartTs + Math.max( Math.min(CYCLE_MS - GLYPH_LINGER_MS, CYCLE_MS - 200), 200 );
-                                    var stepBaseAfter = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
-                                    nextStepTs = now + stepBaseAfter + Math.floor(Math.random() * Math.max(1, Math.floor(stepBaseAfter / 2)));
+                                    nextStepTs = now + UPDATE_MS;
                                     lastTickTs = now; tickAcc = 0; secondToggle = false;
                                 }
                                 return;
@@ -3785,26 +3795,46 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             // Only show hieroglyphs at the final reserved time (derived from popup duration)
                             if(!shownFinalGlyph && finalGlyphTs && now >= finalGlyphTs){
                                 shownFinalGlyph = true;
-                                // Flip all glyphs synchronously and hold for GLYPH_LINGER_MS
-                                toGlyphs(true, GLYPH_LINGER_MS);
+                                // Snap to 0 first (visual completion), then flip into glyphs.
+                                currentSecs = 0;
+                                updateDigits(fmtFiveFromSecs(0));
+                                flipReadyTs = now + FLIP_BUDGET_MS;
+                                setTimeout(function(){
+                                    try{ toGlyphs(true, GLYPH_LINGER_MS); }catch(e){}
+                                }, FLIP_BUDGET_MS);
                                 // Final state: stop all further ticking so nothing flips back to numbers
                                 try{ if(_bootAnimId){ clearInterval(_bootAnimId); _bootAnimId = null; } }catch(e){}
                                 try{ if(_cycleTimerId){ clearInterval(_cycleTimerId); _cycleTimerId = null; } }catch(e){}
                                 return;
                             }
-                            // Update visible time every ~0.9–1.1s using accelerated scale (50×)
-                            if(nextStepTs === 0){ var stepBase = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8)); nextStepTs = now + stepBase + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase/2))); }
-                            if(now >= nextStepTs){
-                                // Use overall elapsed time since the boot animation started so the virtual countdown scales to the full popup duration
-                                var elapsedReal = Math.floor((now - overallStartTs) / 1000); // seconds since boot start
-                                var virtualDec = elapsedReal * SPEED_MULT; // accelerated seconds to subtract
-                                var newSecs = Math.max(0, START_SECS - virtualDec);
-                                if(newSecs !== currentSecs){
-                                    currentSecs = newSecs;
+                            // Update visible time at a fixed cadence using ms-precision.
+                            // IMPORTANT: Don't start a new flip while the previous flip is still running.
+                            if(nextStepTs === 0){ nextStepTs = now + UPDATE_MS; }
+                            if(now >= nextStepTs && now >= flipReadyTs){
+                                var elapsedMs = (now - overallStartTs);
+                                var virtualDec = (elapsedMs / 1000) * VIRTUAL_SECS_PER_REAL_SEC;
+                                var targetSecs = Math.max(0, Math.floor(START_SECS - virtualDec));
+
+                                // If our flip cadence is slower than the target rate, skip ahead by bigger steps
+                                // so we still hit the correct overall speed (10 min/s) by the end.
+                                if(targetSecs < currentSecs){
+                                    var remainingMs = Math.max(0, finalGlyphTs ? (finalGlyphTs - now) : (total - elapsed));
+                                    var remainingUpdates = Math.max(1, Math.ceil(remainingMs / UPDATE_MS));
+                                    var neededDrop = currentSecs - targetSecs;
+                                    var step = Math.max(1, Math.ceil(neededDrop / remainingUpdates));
+                                    var nextSecs = Math.max(targetSecs, currentSecs - step);
+                                    if(nextSecs !== currentSecs){
+                                        currentSecs = nextSecs;
+                                        updateDigits(fmtFiveFromSecs(currentSecs));
+                                        flipReadyTs = now + FLIP_BUDGET_MS;
+                                    }
+                                } else if(targetSecs > currentSecs){
+                                    // Rare (clock skew): catch up without animation spam
+                                    currentSecs = targetSecs;
                                     updateDigits(fmtFiveFromSecs(currentSecs));
+                                    flipReadyTs = now + FLIP_BUDGET_MS;
                                 }
-                                var stepBase2 = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
-                                nextStepTs = now + stepBase2 + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase2/2)));
+                                nextStepTs = now + UPDATE_MS;
                             }
                         }catch(e){}
                     }
@@ -3840,25 +3870,21 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         overallStartTs = now;
                         // Use outer `total` (ms) to calibrate running time
                         var TOTAL_LOAD_MS = (typeof total === 'number' && total > 0) ? Math.max(2000, Math.floor(total)) : 30000;
-                        // Reserve final glyph linger window; compute effective run time for counting
-                        var effectiveRunMs = Math.max(800, TOTAL_LOAD_MS - GLYPH_LINGER_MS);
-                        // Compute SPEED_MULT so START_SECS virtual seconds elapse across effectiveRunMs
-                        SPEED_MULT = Math.max(1, Math.ceil(START_SECS / (effectiveRunMs / 1000)));
-
-                        // Fit cycle length to TOTAL_LOAD_MS aiming for ~10s cycles but always at least 2s
-                        var approxCycleCount = Math.max(1, Math.round(TOTAL_LOAD_MS / 10000));
-                        CYCLE_MS = Math.max(2000, Math.floor(TOTAL_LOAD_MS / approxCycleCount));
+                        // Fixed countdown rate (10 min/s). Keep SPEED_MULT aligned for any older paths.
+                        SPEED_MULT = VIRTUAL_SECS_PER_REAL_SEC;
+                        // Legacy cycle length (mid-cycle glitches are disabled, but keep stable scheduling values)
+                        CYCLE_MS = Math.max(2000, Math.floor(TOTAL_LOAD_MS / 3));
 
                         // Initialize cycle timestamps
                         cycleStartTs = now;
                         // Compute absolute final glyph time (show hieroglyphs only once at end)
-                        finalGlyphTs = overallStartTs + Math.max(200, Math.floor(TOTAL_LOAD_MS - GLYPH_LINGER_MS));
+                        // Leave a small buffer so the "flip to 00000" can complete before glyphs.
+                        finalGlyphTs = overallStartTs + Math.max(200, Math.floor(TOTAL_LOAD_MS - GLYPH_LINGER_MS - (TOP_FLIP_MS + BOTTOM_FLIP_MS + 60)));
                         shownFinalGlyph = false;
                         // Keep a legacy nextGlitchTs value for compatibility but it will not be used to trigger glyphs
                         nextGlitchTs = cycleStartTs + Math.max( Math.min(CYCLE_MS - GLYPH_LINGER_MS, CYCLE_MS - 200), 200 );
-                        // Per-step interval scales with cycle length
-                        var stepBase = Math.max(200, Math.floor((CYCLE_MS - GLYPH_LINGER_MS) / 8));
-                        nextStepTs = now + stepBase + Math.floor(Math.random() * Math.max(1, Math.floor(stepBase / 2)));
+                        nextStepTs = now + UPDATE_MS;
+                        flipReadyTs = 0;
 
                         glitchEndTs = 0;
                         tickAcc = 0; lastTickTs = now; secondToggle = false;
@@ -3873,9 +3899,13 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                         try{
                             if(_bootAnimId) clearInterval(_bootAnimId); _bootAnimId=null;
                             if(_cycleTimerId) clearInterval(_cycleTimerId); _cycleTimerId = null;
-                            // Immediately switch to glyphs and mark inGlitch; do NOT reset here — reset will occur after overlay removal
+                            // Snap to 0 first (visual completion), then flip into glyphs.
+                            currentSecs = 0;
+                            updateDigits(fmtFiveFromSecs(0));
                             var ms = (typeof lingerMs === 'number') ? Math.max(200, lingerMs) : GLYPH_LINGER_MS;
-                            toGlyphs(true, ms);
+                            setTimeout(function(){
+                                try{ toGlyphs(true, ms); }catch(e){}
+                            }, FLIP_BUDGET_MS);
                         }catch(e){}
                     }
                     startBootAnim = start; stopBootAnim = stop;
@@ -3970,14 +4000,17 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     }catch(e){}
                 }
                 var i = 0, elapsed = 0;
-                var total = 30000 + Math.random()*15000; // 30–45s
+                // 108 minutes at 10 min/s => 10.8 seconds.
+                // Keep deterministic so the countdown rate feels exact.
+                var total = 10800; // ms
 
                 function durationFor(text){
                     var len = (text||'').length;
                     // Base + per-char time; clamped to reasonable reading window
-                    var ms = 1400 + len*55; // ~0.055s per char
-                    if(ms < 2200) ms = 2200; // min 2.2s
-                    if(ms > 7200) ms = 7200; // max 7.2s
+                    // Faster cadence since the overlay is short.
+                    var ms = 650 + len*20; // ~0.02s per char
+                    if(ms < 800) ms = 800; // min 0.8s
+                    if(ms > 1800) ms = 1800; // max 1.8s
                     return ms;
                 }
 
@@ -3985,7 +4018,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                     if(!overlay) return;
                     var text = phrases[i % phrases.length];
                     var seg = durationFor(text);
-                    if(elapsed + seg > total){ seg = Math.max(1400, total - elapsed); }
+                    if(elapsed + seg > total){ seg = Math.max(600, total - elapsed); }
                     if(seg <= 0){ endBoot(); return; }
                     phraseEl.classList.remove('show');
                     // fade out then swap
