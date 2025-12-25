@@ -1,31 +1,14 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (disabled)
+
+# This repository already deploys via `.github/workflows/static.yml`.
+# This older workflow used deprecated Pages actions and commonly fails.
+# Keep it available for manual runs only (Actions tab) to avoid noisy failures on push.
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node (optional)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Upload artifact for Pages
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: '.'
-
-  deploy:
-    needs: build-and-deploy
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+      - run: echo "This workflow is intentionally disabled; use 'Deploy static content to Pages'."
