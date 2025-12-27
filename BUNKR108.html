@@ -19,7 +19,53 @@
             }catch(e){}
         })();
     </script>
-    <script>
+
+
+            <script>
+                // Keep API key dots updated (boot overlay removed; dots should still reflect key state).
+                (function(){
+                    function updateApiDots(){
+                        try{
+                            let key = null;
+                            if(typeof getEffectiveGemKey === 'function') key = getEffectiveGemKey();
+                            if(!key){ try{ key = localStorage.getItem('gemini.key'); }catch(e){} }
+
+                            const randomDot = document.getElementById('randomKeyDot');
+                            const dailyDot = document.getElementById('dailyKeyDot');
+                            if(randomDot){ randomDot.classList.remove('missing','present'); randomDot.classList.add(key ? 'present' : 'missing'); }
+                            if(dailyDot){ dailyDot.classList.remove('missing','present'); dailyDot.classList.add(key ? 'present' : 'missing'); }
+
+                            try{
+                                const gear = document.getElementById('randomGearBtn');
+                                const enabledToggle = document.getElementById('globalGemEnable');
+                                const enabled = !!(enabledToggle && enabledToggle.checked);
+                                const ok = !!key && enabled;
+                                if(gear){
+                                    gear.disabled = !ok;
+                                    gear.setAttribute('aria-disabled', (!ok) ? 'true' : 'false');
+                                    gear.classList.toggle('disabled', !ok);
+                                    if(!ok){ gear.setAttribute('tabindex','-1'); } else { gear.removeAttribute('tabindex'); }
+                                }
+                            }catch(e){}
+                        }catch(e){}
+                    }
+
+                    function bind(){
+                        updateApiDots();
+                        try{
+                            window.addEventListener('storage', (e)=>{ if(!e || e.key === 'gemini.key') updateApiDots(); });
+                            document.getElementById('globalGemKey')?.addEventListener('input', ()=>{ setTimeout(updateApiDots, 10); });
+                            document.getElementById('globalGemEnable')?.addEventListener('change', ()=>{ setTimeout(updateApiDots, 10); });
+                        }catch(e){}
+                    }
+
+                    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+                    else bind();
+                })();
+            </script>
+
+                <script>
+
             (function(){
                 // KaTeX dynamic loader + safe render wrapper. Usage: window.renderMathIn(element, opts)
                 if(window.renderMathIn) return;
@@ -850,25 +896,11 @@
         /* Full-screen ASCII watermark layer (behind UI, above .bg-anim) */
         .ascii-watermark{
             position: fixed; inset: 0; z-index: -2147483644; pointer-events: none;
-            display:flex; align-items:center; justify-content:center; /* center base content */
-            overflow: hidden; /* clip outside */
+            display:flex; align-items:center; justify-content:center;
+            overflow: hidden;
             mix-blend-mode: normal;
         }
-        .ascii-watermark pre{
-            margin:0; padding:0; display:none; white-space: pre; line-height: 1;
-            color: rgba(255,255,255,.06);
-            text-shadow: 0 1px 0 rgba(0,0,0,.22), 0 0 8px rgba(255,255,255,.025);
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
-            font-size: 9px; /* smaller characters; cover-fit will keep full screen */
-            transform-origin: center center; /* center for cover fit */
-            will-change: transform;
-            overflow: hidden;
-        }
-        .ascii-watermark pre .row{ display:block }
-        .ascii-watermark .num, .ascii-watermark .fav{ color: rgba(255,255,255,.12); }
         .ascii-watermark canvas{ width:100%; height:100%; display:block }
-
-        /* ASCII watermark removed per user request */
 
         /* Global top safe area (news bar height etc.) */
         :root{ --topSafeArea: 0px; }
@@ -1571,55 +1603,6 @@
             .left-tab-resizer::before{ content:'\2192'; /* right arrow */ font-weight:900; font-size:14px; line-height:1; }
             .left-tab-hoverzone:hover + .left-tab-resizer{ opacity:1 }
             .left-tab-resizer:hover, .left-tab-resizer:focus{ opacity:1; filter:brightness(1.06) }
-            html.booting #leftMagnet, html.booting .left-tab-resizer{ pointer-events:none; opacity:.85 }
-        </style>
-        <style>
-            /* Boot overlay */
-                .boot-overlay{ position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; 
-                    /* Palette-aware ambient */
-                    background:
-                        linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.55)),
-                        radial-gradient(800px 500px at 20% 25%, var(--glow1), transparent 70%),
-                        radial-gradient(700px 450px at 80% 30%, var(--glow2), transparent 75%),
-                        radial-gradient(650px 420px at 50% 85%, var(--glow3), transparent 75%);
-                    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity:1; transition: opacity .6s ease; }
-            .boot-overlay.hidden{ opacity:0; pointer-events:none; }
-                        .boot-card{ text-align:center; max-width: min(760px, 92vw); padding: 20px; border-radius: 16px; border: 1px solid var(--btnBorder); 
-                            /* fallback gradient */
-                            background: linear-gradient(180deg, rgba(16,25,40,.55), rgba(10,16,28,.55));
-      
-                            /* If supported, gently blend brand button colors */
-                            background: linear-gradient(180deg, color-mix(in srgb, var(--btnTop) 70%, transparent), color-mix(in srgb, var(--btnBottom) 70%, transparent));
-                            box-shadow: var(--depth); }
-                .boot-ascii{ text-align:center; margin: 0 0 4px; overflow: hidden; }
-                .boot-ascii pre{ display:inline-block; width:max-content; min-width:max-content; max-width:100%; margin:0; padding:0; color: var(--ink); white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(10px, 1.8vw, 18px); line-height: 1.03; letter-spacing: 0; text-shadow: 0 1px 0 rgba(0,0,0,.35); overflow: hidden; transform-origin: left top; }
-                /* Slightly reduce bottom spacing under the big ASCII title to make room for animation */
-                .boot-ascii pre{ display:inline-block; width:max-content; min-width:max-content; max-width:100%; margin:0 0 6px 0; padding:0; color: var(--ink); white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(10px, 1.8vw, 18px); line-height: 1.03; letter-spacing: 0; text-shadow: 0 1px 0 rgba(0,0,0,.35); overflow: hidden; transform-origin: left top; }
-                .boot-ascii pre::-webkit-scrollbar{ width:0; height:0 }
-            .boot-sub{ color: var(--muted); font-size: clamp(12px, 3.4vw, 14px); margin-top: 18px; min-height: 1.4em; }
-            .boot-phrase{ color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: clamp(12px, 3.2vw, 16px); line-height: 1.35; min-height: 2.2em; opacity: 0; transition: opacity .35s ease; margin-top: 8px; white-space: normal; }
-            .boot-phrase.show{ opacity: 1; }
-            .spinner.lg{ width:28px; height:28px; border-width:3px; margin: 10px auto 0; display:inline-block }
-                /* Spinner matches active brand */
-                .boot-overlay .spinner{ border-color: var(--brand); border-top-color: transparent; }
-                /* Hide page scrollbars while booting */
-                html.booting, body.booting{ overflow: hidden !important; height: 100%; }
-
-                /* While booting we keep sticky UI visible but non-interactive so the overlay feels modal
-                   This leaves notes/dock/rail/title in the visual background but prevents pointer/focus interactions */
-                html.booting .sticky-dock,
-                html.booting .sticky-panel,
-                html.booting .sticky-rail,
-                html.booting .sticky-note,
-                html.booting #stickyTitleBox {
-                    /* Keep visible (no opacity change) but disable pointer and selection */
-                    pointer-events: none !important;
-                    -webkit-user-select: none !important;
-                    user-select: none !important;
-                    transform: translateY(6px) scale(.995);
-                    transition: transform .18s ease;
-                }
-            @media (max-width: 640px){ .boot-card{ padding: 16px; } }
         </style>
         <style>
             /* Sticky rail resizer handle */
@@ -1636,29 +1619,10 @@
             .sticky-rail-resizer:hover{ filter: brightness(1.06); opacity: 1; }
             .sticky-rail-resizer:active{ filter: brightness(1.1); }
             .sticky-rail-resizer:focus{ outline: 2px solid var(--brand); outline-offset: 2px; }
-            /* Hide when boot overlay sets inert visuals to avoid confusing focus layering */
-            html.booting .sticky-rail-resizer{ pointer-events:none; opacity:.85; transform: translateY(calc(-50% + 6px)) scale(.995); }
             /* Hover zone to reveal resizer */
             .sticky-rail-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; right: calc(12px + env(safe-area-inset-right) + var(--stickyRailW) + 8px); top: 50%; transform: translateY(-50%); }
             .sticky-rail-hoverzone:hover + .sticky-rail-resizer{ opacity: 1; }
             .sticky-rail-resizer:hover, .sticky-rail-resizer:focus{ opacity: 1; }
-            /* small fixed-size ASCII animation area that matches spinner footprint */
-            /* Wider boot ascii anim so five characters fit comfortably */
-            .boot-ascii-anim{ display:inline-block; width:140px; height:48px; margin: 10px auto 0; text-align:center; font-family: ui-monospace, 'Courier New', monospace; font-size:28px; line-height:44px; letter-spacing:-0.5px; color:var(--muted); overflow:hidden }
-            /* Ancient glyph styling (red, glowing) for special sprinkle frames */
-            .boot-ascii-anim .ancient{ color:#ff5a5a; text-shadow: 0 0 4px rgba(255,75,75,.9), 0 0 8px rgba(255,75,75,.6); font-weight:800 }
-            /* Fixed-width slot styling so glyphs and dots align exactly */
-            .boot-ascii-anim{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-variant-ligatures: none; }
-            .boot-ascii-anim .slot{ display:inline-block; width:1ch; min-width:1ch; text-align:center; line-height:14px; vertical-align:middle; }
-            .boot-ascii-anim .empty{ color: transparent }
-            /* Flip-clock digits (text-only) */
-            .boot-ascii-anim .digits{ display:inline-block; }
-            .boot-ascii-anim .digits{ display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box }
-            .boot-ascii-anim .digit{ display:inline-flex; flex:0 0 20%; max-width:20%; box-sizing:border-box; justify-content:center; align-items:center; text-align:center; line-height:44px; vertical-align:middle; transform-origin: center top; transition: transform .14s ease; font-variant-numeric: tabular-nums; white-space:nowrap }
-            .boot-ascii-anim .digit.ancient{ /* use symbol-capable fonts so glyphs render consistently */
-                font-family: 'Segoe UI Historic', 'Noto Sans Symbols2', 'Segoe UI Symbol', serif; 
-                font-weight:900; font-size:30px; line-height:44px; justify-content:center; display:inline-flex; }
-            .boot-ascii-anim .digit.flip{ transform: rotateX(-90deg); }
         </style>
                 <style>
                     /* Hide only the root page scrollbar; preserve inner scrollbars */
@@ -2070,28 +2034,6 @@
 
         <!-- Blocky ASCII Digital Clock (just above the radio) -->
         <div id="asciiClock" aria-label="Local time clock" title="Local time clock"><pre id="asciiClockPre">00:00</pre></div>
-        <!-- Boot overlay shown before the main interface -->
-                <div id="bootOverlay" class="boot-overlay" aria-live="polite">
-            <div class="boot-card">
-                    <div class="boot-ascii" aria-hidden="false" role="img" aria-label="BUNKR 108 title banner">
-    <pre id="bootAscii">
-_______   __    __  __    __  __    __  _______           __     ______    ______  
-|       \ |  \  |  \|  \  |  \|  \  /  \|       \        _/  \   /      \  /      \ 
-| $$$$$$$\| $$  | $$| $$\ | $$| $$ /  $$| $$$$$$$\      |   $$  |  $$$$$$\|  $$$$$$\
-| $$__/ $$| $$  | $$| $$$\| $$| $$/  $$ | $$__| $$       \$$$$  | $$$\| $$| $$__/ $$
-| $$    $$| $$  | $$| $$$$\ $$| $$  $$  | $$    $$        | $$  | $$$$\ $$ >$$    $$
-| $$$$$$$\| $$  | $$| $$\$$ $$| $$$$$\  | $$$$$$$\        | $$  | $$\$$\$$|  $$$$$$ 
-| $$__/ $$| $$__/ $$| $$ \$$$$| $$ \$$\ | $$  | $$       _| $$_ | $$_\$$$$| $$__/ $$
-| $$    $$ \$$    $$| $$  \$$$| $$  \$$\| $$  | $$      |   $$ \ \$$  \$$$ \$$    $$
- \$$$$$$$   \$$$$$$  \$$   \$$ \$$   \$$ \$$   \$$       \$$$$$$  \$$$$$$   \$$$$$$ 
-    </pre>
-                    </div>
-                <!-- ASCII animation (replaces spinner) - keeps same footprint as .spinner.lg -->
-                <pre id="bootAsciiAnim" aria-hidden="true" class="boot-ascii-anim">[   ]</pre>
-                <div class="boot-sub">Initializing…</div>
-                <div id="bootPhrase" class="boot-phrase" role="status"></div>
-            </div>
-        </div>
         <script>
             // Ensure the Daily button outline animates unless the user prefers reduced motion.
             // Defer until DOMContentLoaded so the element exists when we query it.
@@ -3215,7 +3157,6 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <!-- Semi-transparent dynamic ASCII watermark background -->
     <div class="ascii-watermark" aria-hidden="true">
         <canvas id="asciiCanvas"></canvas>
-        <pre id="asciiWatermark"></pre>
     </div>
 
     <script>
@@ -3497,75 +3438,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
     <div id="leftTabHoverzone" class="left-tab-hoverzone" aria-hidden="true"></div>
         <button id="leftTabResizer" class="left-tab-resizer" aria-label="Resize left magnet tab" title="Drag to resize left magnet width" aria-controls="leftMagnet" data-min="180" data-max="520"></button>
 
-            <!-- Flip-clock digit card styling (boxes per digit with flip cover effect) -->
-        <style id="bootFlipCardStyles">
-            /* Scope to boot ASCII host so we don't affect other digits */
-                #bootAsciiAnim{ display:block; overflow:visible; min-width: 260px; margin: 2px auto; }
-                #bootAsciiAnim .digits{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:nowrap }
-            #bootAsciiAnim .digit{
-                position:relative;
-                display:inline-flex; align-items:center; justify-content:center;
-                    flex:0 0 auto;
-                    width: 44px; height: 56px; /* smaller card so it never overlaps subtext */
-                    font-size: 28px; line-height: 1; letter-spacing: .04em;
-                    min-width: 40px; /* ensure visible box even with narrow glyphs */
-                    padding:0;
-                border-radius:8px;
-                background: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.08);
-                box-shadow: inset 0 -1px 0 rgba(255,255,255,0.06), 0 10px 28px rgba(0,0,0,0.35);
-                overflow:hidden;
-                backface-visibility: hidden;
-                transform-style: preserve-3d;
-                -webkit-font-smoothing: antialiased;
-                text-rendering: geometricPrecision;
-                will-change: transform;
-                transition: background 160ms ease, border-color 160ms ease;
-            }
-            /* Ancient glyphs appear inside the same card */
-            #bootAsciiAnim .digit.ancient{ background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14) }
-
-                        /* Split-flap illusion: we only show flaps during a flip (class .splitting) */
-                        #bootAsciiAnim .digit::before, #bootAsciiAnim .digit::after{
-                            position:absolute; left:0; right:0; display:flex; align-items:center; justify-content:center;
-                            font: inherit; color: inherit; letter-spacing: inherit;
-                            background: rgba(10,10,20,0.25);
-                            border-top: 1px solid rgba(255,255,255,0.08);
-                            border-bottom: 1px solid rgba(0,0,0,0.35);
-                            pointer-events:none; backface-visibility:hidden; transform-style:preserve-3d; opacity:0;
-                        }
-                        /* top flap shows current value at flip start */
-                        #bootAsciiAnim .digit.splitting::before{
-                            content: attr(data-top);
-                            top:0; height:50%;
-                            transform-origin: bottom center;
-                            transform: perspective(500px) rotateX(0deg);
-                            overflow:hidden; opacity:1;
-                        }
-                        /* bottom flap initially shows current; later we swap content to next and flip it in */
-                        #bootAsciiAnim .digit.splitting::after{
-                            content: attr(data-bottom);
-                            bottom:0; height:50%;
-                            transform-origin: top center;
-                            transform: perspective(500px) rotateX(90deg);
-                            overflow:hidden; opacity:1;
-                            box-shadow: 0 -8px 18px rgba(0,0,0,0.35);
-                        }
-                        /* Hide the base text while flaps are active so things don't look doubled */
-                        #bootAsciiAnim .digit.splitting{ color: transparent; }
-                        /* Stage 1: top flips up (old value) */
-                        #bootAsciiAnim .digit.flip2::before{ animation: topFlipOut 100ms ease forwards; }
-                        /* Stage 2: after we switch data-bottom to the next value, flip it in */
-                        #bootAsciiAnim .digit.bottomIn::after{ animation: bottomFlipIn 140ms ease forwards; }
-                @keyframes topFlipOut{
-                    0%{ transform: perspective(500px) rotateX(0deg); }
-                    100%{ transform: perspective(500px) rotateX(-90deg); }
-                }
-                @keyframes bottomFlipIn{
-                    0%{ transform: perspective(500px) rotateX(90deg); }
-                    100%{ transform: perspective(500px) rotateX(0deg); }
-                }
-        </style>
+        
 
 
     <script>
@@ -3573,6 +3446,7 @@ _______   __    __  __    __  __    __  _______           __     ______    _____
                             (function(){
                                 // Only show boot overlay on initial page load (per-tab)
                                 var overlay = document.getElementById('bootOverlay');
+                                if(!overlay) return;
                                 try{
                                     var skip = sessionStorage.getItem('__bootPlayed') === '1';
                                     if(skip){ if(overlay && overlay.parentNode){ overlay.parentNode.removeChild(overlay); } return; }
@@ -17324,10 +17198,7 @@ ${ (tbCtx ? (tbCtx + '\n\n') : '') + extracted }
 #stickyTitleBox{ position:fixed; top: calc(env(safe-area-inset-top) + var(--topSafeArea) + var(--stickyTopGap)); right:12px; z-index:210; padding:0; border:none; background:transparent; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
 #stickyTitleBox pre{ margin:0 0 0px 0; line-height:1.0; font-family: "Courier New", Consolas, monospace; font-weight:700; letter-spacing:0.35px; color:#dfe7ff; text-shadow:0 1px 0 #000; font-size: 12px; -webkit-user-select:none; user-select:none }
 #stickyTitleBox{ -webkit-user-select:none; user-select:none }
-/* Boot overlay ASCII title: make non-selectable */
-#bootAscii{ -webkit-user-select:none; user-select:none }
-/* Also make the watermark ASCII non-selectable */
-#asciiWatermark{ -webkit-user-select:none; user-select:none }
+
 
 /* Anchor dock right beneath title */
 /* Dock beneath the title; positioned dynamically via JS to avoid overlap */
