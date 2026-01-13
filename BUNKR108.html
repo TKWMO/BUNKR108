@@ -305,6 +305,12 @@
             --ui-scale: 0.87;
             /* Extra top spacing reserved for bg toggles (so palette chooser can have larger spacer) */
             --bg-toggle-extra: 8px;
+            /* Unified edge padding for fixed UI (reduced on phones) */
+            --edgePad: 12px;
+            --edge-left: calc(var(--edgePad) + env(safe-area-inset-left));
+            --edge-right: calc(var(--edgePad) + env(safe-area-inset-right));
+            --edge-top: calc(var(--edgePad) + env(safe-area-inset-top));
+            --edge-bottom: calc(var(--edgePad) + env(safe-area-inset-bottom));
             --bg: #070b12;
             --ink: #e9f0f7;
             --muted: #9fb0c5;
@@ -922,7 +928,7 @@
 
         /* Theme capsule (left side) */
         .theme-capsule{
-            position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(12px + env(safe-area-inset-top) + var(--topSafeArea)); transform: none;
+            position: fixed; left: var(--edge-left); top: calc(var(--edge-top) + var(--topSafeArea)); transform: none;
             display:flex; gap:10px; align-items:center; padding:8px 10px;
             border-radius: 9999px; border: 1px solid rgba(31,42,68,.6);
             background: linear-gradient(180deg, rgba(16,25,40,.65), rgba(10,16,28,.65));
@@ -934,16 +940,14 @@
         /* Place the background toggle just below the theme capsule */
         #bgToggles{
             position: fixed;
-            left: calc(12px + env(safe-area-inset-left));
+            left: var(--edge-left);
             /* Use theme capsule height + the unified control gap for consistent spacing */
-            top: calc(12px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 56px) + var(--control-gap) + var(--bg-toggle-extra));
+            top: calc(var(--edge-top) + var(--topSafeArea) + var(--theme-capsule-h, 56px) + var(--control-gap) + var(--bg-toggle-extra));
             z-index: 6; /* above canvas and peers */
             display:flex; gap: var(--control-gap); align-items:flex-start; flex-direction: column; /* stack toggles vertically */
         }
-        @media (max-width: 640px){ .theme-capsule{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea)); } }
-        /* On small screens, the orbs are larger; update the capsule height variable and recompute */
-        @media (max-width: 640px){ :root{ --theme-capsule-h: 60px; } }
-        @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 60px) + var(--control-gap) + var(--bg-toggle-extra)); } }
+        /* Mobile tweaks: reduce edge padding and account for larger orbs */
+        @media (max-width: 640px){ :root{ --edgePad: 6px; --theme-capsule-h: 60px; } }
         .theme-orb{
             --c1: #5aa5ff; --c2: #46d3ff; --c3: #7a66ff; /* default fallbacks */
             --hx: 30%; --hy: 22%; /* specular highlight anchor (moves on hover) */
@@ -1022,7 +1026,14 @@
     }
     #peClose.btn.small:hover{ filter: brightness(1.06); transform: translateY(-1px); }
     #peClose.btn.small:focus{ outline: 2px solid rgba(96,165,250,.35); outline-offset: 2px }
-    @media (max-width:640px){ .palette-editor{ width:92%; left:4% !important; right:auto !important } }
+    @media (max-width:640px){
+        .palette-editor{
+            left: var(--edge-left) !important;
+            right: auto !important;
+            width: calc(100vw - (var(--edge-left) + var(--edge-right))) !important;
+            max-width: calc(100vw - (var(--edge-left) + var(--edge-right))) !important;
+        }
+    }
 
     /* In-DOM Custom Color Picker (invertable under light-mode) */
     #ccpPanel{ position: fixed; z-index:2147483645; width:280px; border-radius:12px; padding:10px; box-sizing:border-box;
@@ -1431,7 +1442,7 @@
         <style>
             /* Sticky Notes Dock + Windows */
             :root{ --stickyScale: 1; --stickyTopGap: 8px; --stickyRailW: 280px; }
-            .sticky-dock{ position:fixed; right: calc(12px + env(safe-area-inset-right)); top: calc(12px + env(safe-area-inset-top) + 280px + var(--topSafeArea) + var(--stickyTopGap)); z-index:190; display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, rgba(16,25,40,.72), rgba(10,16,28,.72)); box-shadow: var(--depth); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transform-origin: top right; transform: scaleY(var(--stickyScale)); }
+            .sticky-dock{ position:fixed; right: var(--edge-right); top: calc(var(--edge-top) + 280px + var(--topSafeArea) + var(--stickyTopGap)); z-index:190; display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, rgba(16,25,40,.72), rgba(10,16,28,.72)); box-shadow: var(--depth); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transform-origin: top right; transform: scaleY(var(--stickyScale)); }
             .sticky-dock .sd-btn{ appearance:none; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); font-weight:800; font-size:12px; padding:6px 10px; border-radius:999px; cursor:pointer }
             .sticky-dock .sd-btn.small{ font-weight:700; padding:4px 8px; font-size:11px }
             .sticky-dock .sd-btn:hover{ filter:brightness(1.06) }
@@ -1441,7 +1452,10 @@
             .sticky-panel .sd-btn:hover{ filter:brightness(1.06) }
             .sticky-panel .sd-btn:focus-visible{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
             .sticky-dock .sd-count{ min-width:20px; height:20px; border-radius:999px; background: rgba(255,255,255,.08); border:1px solid rgba(60,80,120,.45); display:inline-flex; align-items:center; justify-content:center; font-size:12px; color: var(--ink) }
-            .sticky-panel{ position:fixed; right: calc(12px + env(safe-area-inset-right)); top: calc(64px + env(safe-area-inset-top) + 280px + var(--topSafeArea) + var(--stickyTopGap)); z-index:191; width: min(420px, 92vw); max-height: 50vh; overflow:auto; padding:10px; border-radius:14px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, rgba(16,25,40,.92), rgba(10,16,28,.92)); box-shadow: var(--depth); transform-origin: top right; transform: scaleY(var(--stickyScale)); }
+            .sticky-panel{ position:fixed; right: var(--edge-right); top: calc(var(--edge-top) + 52px + 280px + var(--topSafeArea) + var(--stickyTopGap)); z-index:191; width: min(420px, 92vw); max-height: 50vh; overflow:auto; padding:10px; border-radius:14px; border:1px solid var(--btnBorder); background: linear-gradient(180deg, rgba(16,25,40,.92), rgba(10,16,28,.92)); box-shadow: var(--depth); transform-origin: top right; transform: scaleY(var(--stickyScale)); }
+            @media (max-width: 640px){
+                .sticky-panel{ width: calc(100vw - (var(--edge-left) + var(--edge-right))); max-width: calc(100vw - (var(--edge-left) + var(--edge-right))); }
+            }
             .sticky-panel.hidden{ display:none }
             .sticky-panel .row{ display:flex; gap:8px; align-items:center }
             .sticky-panel .sd-input{ flex:1 1 auto; height:32px; border-radius:10px; background:#0c1526; color:var(--ink); border:1px solid var(--btnBorder); padding:6px 10px; font-size:12px }
@@ -1596,7 +1610,7 @@
     </style>
         <style>
             /* Sticky rail on the right with 5 clip slots */
-            .sticky-rail{ position:fixed; top: calc(var(--topSafeArea) + var(--stickyTopGap)); bottom: 0; right: calc(12px + env(safe-area-inset-right)); z-index:189; display:flex; flex-direction:column; gap:10px; pointer-events:none; padding-bottom: 8px; transform-origin: top right; transform: scaleY(var(--stickyScale)); }
+            .sticky-rail{ position:fixed; top: calc(var(--topSafeArea) + var(--stickyTopGap)); bottom: 0; right: var(--edge-right); z-index:189; display:flex; flex-direction:column; gap:10px; pointer-events:none; padding-bottom: 8px; transform-origin: top right; transform: scaleY(var(--stickyScale)); }
             .clip-slot{ width: var(--stickyRailW); min-height: 120px; flex: 1 1 0; border-radius: 12px; border:1px dashed rgba(100,130,180,.55); background: linear-gradient(180deg, rgba(16,25,40,.55), rgba(10,16,28,.55)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); opacity:.9; transition: filter .12s ease; pointer-events:none }
             .clip-slot:hover{ filter: brightness(1.06) }
             .clip-slot.slot-hover{ outline: 2px solid var(--brand); outline-offset: 2px }
@@ -1609,12 +1623,12 @@
             .clip-slot.c-lav{ outline: 2px solid #4b3a7a; outline-offset: 2px }
             /* Left-side single magnet tab (between top controls and radio) */
             :root{ --leftTabW: 260px; }
-            #leftMagnet{ position:fixed; left: calc(12px + env(safe-area-inset-left)); top: 180px; height: 240px; width: var(--leftTabW); z-index:188; pointer-events:none; border-radius: 12px; border:1px dashed rgba(100,130,180,.55); background: linear-gradient(180deg, rgba(16,25,40,.55), rgba(10,16,28,.55)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); opacity:.9 }
+            #leftMagnet{ position:fixed; left: var(--edge-left); top: 180px; height: 240px; width: min(var(--leftTabW), calc(100vw - (var(--edge-left) + var(--edge-right)))); z-index:188; pointer-events:none; border-radius: 12px; border:1px dashed rgba(100,130,180,.55); background: linear-gradient(180deg, rgba(16,25,40,.55), rgba(10,16,28,.55)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); opacity:.9 }
             #leftMagnet.slot-hover{ outline: 2px solid var(--brand); outline-offset: 2px }
             #leftMagnet.occupied{ border:none; opacity:.94 }
             /* Hoverzone + resizer to expand the magnet width (mirror of right-rail control) */
-            .left-tab-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; left: calc(12px + env(safe-area-inset-left) + var(--leftTabW) + 8px); top: 50%; transform: translateY(-50%); }
-            .left-tab-resizer{ position:fixed; z-index:211; width:28px; height:28px; border-radius:50%; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); cursor: ew-resize; display:flex; align-items:center; justify-content:center; left: calc(12px + env(safe-area-inset-left) + var(--leftTabW) + 8px); top: 50%; transform: translateY(-50%); box-shadow: var(--depth); opacity:0; transition: opacity .15s ease, filter .12s ease; }
+            .left-tab-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; left: calc(var(--edge-left) + min(var(--leftTabW), calc(100vw - (var(--edge-left) + var(--edge-right)))) + 8px); top: 50%; transform: translateY(-50%); }
+            .left-tab-resizer{ position:fixed; z-index:211; width:28px; height:28px; border-radius:50%; border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom)); color: var(--ink); cursor: ew-resize; display:flex; align-items:center; justify-content:center; left: calc(var(--edge-left) + min(var(--leftTabW), calc(100vw - (var(--edge-left) + var(--edge-right)))) + 8px); top: 50%; transform: translateY(-50%); box-shadow: var(--depth); opacity:0; transition: opacity .15s ease, filter .12s ease; }
             .left-tab-resizer::before{ content:'\2192'; /* right arrow */ font-weight:900; font-size:14px; line-height:1; }
             .left-tab-hoverzone:hover + .left-tab-resizer{ opacity:1 }
             .left-tab-resizer:hover, .left-tab-resizer:focus{ opacity:1; filter:brightness(1.06) }
@@ -1625,7 +1639,7 @@
                 position:fixed; z-index:211; width:28px; height:28px; border-radius:50%;
                 border:1px solid var(--btnBorder); background: linear-gradient(180deg, var(--btnTop), var(--btnBottom));
                 color: var(--ink); cursor: ew-resize; display:flex; align-items:center; justify-content:center;
-                right: calc(12px + env(safe-area-inset-right) + var(--stickyRailW) + 8px);
+                right: calc(var(--edge-right) + var(--stickyRailW) + 8px);
                 top: 50%; transform: translateY(-50%);
                 box-shadow: var(--depth);
                 opacity: 0; transition: opacity .15s ease, filter .12s ease;
@@ -1635,7 +1649,7 @@
             .sticky-rail-resizer:active{ filter: brightness(1.1); }
             .sticky-rail-resizer:focus{ outline: 2px solid var(--brand); outline-offset: 2px; }
             /* Hover zone to reveal resizer */
-            .sticky-rail-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; right: calc(12px + env(safe-area-inset-right) + var(--stickyRailW) + 8px); top: 50%; transform: translateY(-50%); }
+            .sticky-rail-hoverzone{ position:fixed; z-index:210; pointer-events:auto; opacity:0; width:40px; height:60px; right: calc(var(--edge-right) + min(var(--stickyRailW), calc(100vw - (var(--edge-left) + var(--edge-right)))) + 8px); top: 50%; transform: translateY(-50%); }
             .sticky-rail-hoverzone:hover + .sticky-rail-resizer{ opacity: 1; }
             .sticky-rail-resizer:hover, .sticky-rail-resizer:focus{ opacity: 1; }
         </style>
@@ -1880,7 +1894,7 @@
 </style>
     <style>
         /* Bottom-left Ambient Radio Player */
-    #radioPlayer{ --rpClockGap: 18px; position:fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom) + var(--rpRaise, 0px)); z-index:2200; width: 320px; max-width: 92vw; display:flex; flex-direction: column; gap:8px; padding:10px 12px; box-sizing:border-box;
+    #radioPlayer{ --rpClockGap: 18px; position:fixed; left: var(--edge-left); bottom: calc(var(--edge-bottom) + var(--rpRaise, 0px)); z-index:2200; width: 320px; max-width: calc(100vw - (var(--edge-left) + var(--edge-right))); display:flex; flex-direction: column; gap:8px; padding:10px 12px; box-sizing:border-box;
         /* Ensure the radio player paints above sticky notes and doesn't affect layout
            by creating a local stacking context and promoting to its own layer. */
         isolation: isolate;
@@ -1956,7 +1970,7 @@
     
     /* ASCII Clock (sits underneath the radio, same width) */
     /* Unboxed appearance: no border/background/shadow */
-    #asciiClock{ position:fixed; left: calc(12px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom)); z-index:179; box-sizing:border-box; padding:0; border-radius: 0; border:none; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; display:inline-block }
+    #asciiClock{ position:fixed; left: var(--edge-left); bottom: var(--edge-bottom); z-index:179; box-sizing:border-box; padding:0; border-radius: 0; border:none; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; display:inline-block }
     /* Clock text size set to 10px */
     #asciiClock pre{ margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; white-space: pre; line-height:1; color: var(--ink); letter-spacing: -0.5px; font-size: 10px }
     /* Prevent selection on clock ASCII */
@@ -1993,7 +2007,7 @@
         #radioPlayer .rp-title .dot{ width:8px; height:8px; border-radius:50%; background: var(--brand); box-shadow: 0 0 12px var(--brand) }
     #radioPlayer.min .rp-meta, #radioPlayer.min .ascii-ant{ display:none }
     #radioPlayer.min{ padding-top:8px; padding-bottom:8px }
-        @media (max-width: 640px){ #radioPlayer{ width: min(92vw, 340px); padding:6px 8px } #radioPlayer .rp-vol{ width: 80px } }
+        @media (max-width: 640px){ #radioPlayer{ width: min(calc(100vw - (var(--edge-left) + var(--edge-right))), 340px); padding:6px 8px } #radioPlayer .rp-vol{ width: 80px } }
     </style>
 
 </head>
@@ -17218,15 +17232,15 @@ ${ (tbCtx ? (tbCtx + '\n\n') : '') + extracted }
 .sticky-resize:hover{ opacity:0.95; }
 
 /* Title above dock: bare ASCII (no box), larger size, non-selectable */
-#stickyTitleBox{ position:fixed; top: calc(env(safe-area-inset-top) + var(--topSafeArea) + var(--stickyTopGap)); right:12px; z-index:210; padding:0; border:none; background:transparent; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
+#stickyTitleBox{ position:fixed; top: calc(env(safe-area-inset-top) + var(--topSafeArea) + var(--stickyTopGap)); right: var(--edge-right); z-index:210; padding:0; border:none; background:transparent; box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none }
 #stickyTitleBox pre{ margin:0 0 0px 0; line-height:1.0; font-family: "Courier New", Consolas, monospace; font-weight:700; letter-spacing:0.35px; color:#dfe7ff; text-shadow:0 1px 0 #000; font-size: 12px; -webkit-user-select:none; user-select:none }
 #stickyTitleBox{ -webkit-user-select:none; user-select:none }
 
 
 /* Anchor dock right beneath title */
 /* Dock beneath the title; positioned dynamically via JS to avoid overlap */
-#stickyDock{ position:fixed; right:12px; z-index:210; }
-#stickyPanel{ position:fixed; right:12px; z-index:210; }
+#stickyDock{ position:fixed; right: var(--edge-right); z-index:210; }
+#stickyPanel{ position:fixed; right: var(--edge-right); z-index:210; }
 
 /* Panel list delete button */
 .sticky-item{ display:flex; align-items:center; gap:10px; justify-content:space-between; }
