@@ -301,6 +301,10 @@
         .lint-item.error{ border-color: rgba(239, 68, 68, .28); }
 
         :root {
+            /* Global UI scale to prevent initial layout collisions at 100% browser zoom */
+            --ui-scale: 0.87;
+            /* Extra top spacing reserved for bg toggles (so palette chooser can have larger spacer) */
+            --bg-toggle-extra: 8px;
             --bg: #070b12;
             --ink: #e9f0f7;
             --muted: #9fb0c5;
@@ -348,7 +352,18 @@
             font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Helvetica, Arial;
             overflow-x: hidden;
             background: #060a12;
+            /* Prefer `zoom` (Chromium/Edge) for true layout scaling */
+            zoom: var(--ui-scale);
             
+        }
+
+        /* Fallback when `zoom` isn't supported (e.g., Firefox): visual scale + width compensation */
+        @supports not (zoom: 1) {
+            body {
+                transform: scale(var(--ui-scale));
+                transform-origin: top left;
+                width: calc(100% / var(--ui-scale));
+            }
         }
 
         /* End-of-scroll breathing room beneath the final module */
@@ -921,14 +936,14 @@
             position: fixed;
             left: calc(12px + env(safe-area-inset-left));
             /* Use theme capsule height + the unified control gap for consistent spacing */
-            top: calc(12px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 56px) + var(--control-gap));
+            top: calc(12px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 56px) + var(--control-gap) + var(--bg-toggle-extra));
             z-index: 6; /* above canvas and peers */
             display:flex; gap: var(--control-gap); align-items:flex-start; flex-direction: column; /* stack toggles vertically */
         }
         @media (max-width: 640px){ .theme-capsule{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea)); } }
         /* On small screens, the orbs are larger; update the capsule height variable and recompute */
         @media (max-width: 640px){ :root{ --theme-capsule-h: 60px; } }
-        @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 60px) + var(--control-gap)); } }
+        @media (max-width: 640px){ #bgToggles{ left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top) + var(--topSafeArea) + var(--theme-capsule-h, 60px) + var(--control-gap) + var(--bg-toggle-extra)); } }
         .theme-orb{
             --c1: #5aa5ff; --c2: #46d3ff; --c3: #7a66ff; /* default fallbacks */
             --hx: 30%; --hy: 22%; /* specular highlight anchor (moves on hover) */
@@ -6146,12 +6161,12 @@
             :root{ --asciiTitleGap: 0px; }
             /* Increase top margin to move title away from the news bar; reduce bottom gap via --asciiTitleGap */
             .page-ascii-title{ margin:18px auto var(--asciiTitleGap); padding:0 2px; color: var(--ink); overflow:visible; pointer-events:none; -webkit-user-select:none; user-select:none; position:relative; display:flex; justify-content:center; align-items:flex-start; }
-            .page-ascii-title pre{ margin:0; display:block; font-family: "Courier New", Consolas, monospace; font-weight:700; line-height:1.0; letter-spacing:0.35px; text-shadow:0 1px 0 #000; font-size:24px; white-space:pre; -webkit-user-select:none; user-select:none; transform-origin: top center; will-change: transform; }
-            @media (max-width: 800px){ .page-ascii-title pre{ font-size:10px; } }
-            @media (max-width: 480px){ .page-ascii-title pre{ font-size:9px; } }
+            .page-ascii-title pre{ margin:0; display:block; font-family: "Courier New", Consolas, monospace; font-weight:700; line-height:1.0; letter-spacing:0.35px; text-shadow:0 1px 0 #000; font-size:18px; white-space:pre; -webkit-user-select:none; user-select:none; transform-origin: top center; will-change: transform; }
+            @media (max-width: 800px){ .page-ascii-title pre{ font-size:7px; } }
+            @media (max-width: 480px){ .page-ascii-title pre{ font-size:6px; } }
             /* Site credit styling placed under title/boot overlays */
             /* Place credit directly under the title with no gap above; keep 6px below to separate from API bar */
-            .site-credit{ margin:0 auto 12px; text-align:center; color:var(--ink); opacity:0.95; font-size:15px; font-weight:600; display:block; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; }
+            .site-credit{ margin:14px auto 12px; text-align:center; color:var(--ink); opacity:0.95; font-size:15px; font-weight:600; display:block; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; }
             @media (max-width:480px){ .site-credit{ font-size:13px; } }
         </style>
         <div id="mainAsciiTitle" class="page-ascii-title" aria-label="BUNKR 108 title banner">
@@ -6207,6 +6222,14 @@
                 try{
                     const { title, pre, module } = getEls();
                     if(!title || !pre || !module) return;
+
+                    // User preference: keep the ASCII title large even if it exceeds the module width.
+                    // Disable the downscale-to-fit behavior and remove width constraints.
+                    title.style.width = 'auto';
+                    title.style.maxWidth = 'none';
+                    title.style.height = '';
+                    pre.style.transform = 'none';
+                    return;
                     const inset = 4; // px of breathing room to avoid any overhang
                     const modRect = module.getBoundingClientRect();
                     const targetW = Math.max(0, Math.round(modRect.width) - inset);
@@ -6285,7 +6308,7 @@
                             }
                             // Ensure visual centering and modest spacing
                             credit.style.textAlign = 'center';
-                            if(!credit.style.marginTop) credit.style.marginTop = '6px';
+                            if(!credit.style.marginTop) credit.style.marginTop = '14px';
                         }catch{}
                     }
                     ensureCreditUnderTitle();
@@ -17283,6 +17306,23 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
     const storeKey = 'sticky.notes.v1';
     const calStoreKey = 'calendar.dayNotes.v1';
     const $ = id => document.getElementById(id);
+    // When the page is globally scaled (e.g., via CSS `zoom`), pointer and DOMRect coordinates
+    // can diverge from layout px (offsetLeft/Top). Normalize by inferring the effective scale.
+    function getUiScale(){
+        try{
+            const b = document.body;
+            if(!b) return 1;
+            const rect = b.getBoundingClientRect();
+            const ow = b.offsetWidth;
+            if(!ow || !rect.width) return 1;
+            const s = rect.width / ow;
+            return (s > 0.2 && s < 5) ? s : 1;
+        }catch{ return 1; }
+    }
+    function viewportInLayoutPx(){
+        const s = getUiScale();
+        return { s, vw: window.innerWidth / s, vh: window.innerHeight / s };
+    }
             const dock = $('stickyDock'); const panel = $('stickyPanel');
             const calPanel = $('calendarPanel');
             const titleBox = $('stickyTitleBox');
@@ -17589,15 +17629,16 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
         try{
             const slots = getSlots(); const sEl = slots[i]; if(!sEl) return;
             const rect = sEl.getBoundingClientRect();
+            const s = getUiScale();
             const pad = 6, gap = 6;
-            const width = Math.max(40, Math.floor(rect.width - pad*2));
+            const width = Math.max(40, Math.floor((rect.width - pad*2) / s));
             const arr = load().filter(n=> n.open!==false && n.clippedSlot===i).sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
             if(arr.length===0){ sEl.classList.remove('occupied'); return; }
-            const availH = Math.max(40, Math.floor(rect.height - pad*2 - gap*(arr.length-1)));
+            const availH = Math.max(40, Math.floor((rect.height - pad*2 - gap*(arr.length-1)) / s));
             const minH = 56;
             const height = Math.max(minH, Math.floor(availH / arr.length));
-            let top = Math.floor(rect.top + pad);
-            const left = Math.floor(rect.left + pad);
+            let top = Math.floor((rect.top + pad) / s);
+            const left = Math.floor((rect.left + pad) / s);
             arr.forEach((note)=>{
                 const win = document.querySelector(`[data-sticky-id="${note.id}"]`);
                 if(!win) return;
@@ -17658,17 +17699,18 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
             const M = 12; // outer margin
             const arr = load().filter(n=> n.pinned);
             if(!arr || !arr.length) return;
+            const { vw, vh } = viewportInLayoutPx();
             arr.forEach(n=>{
                 const el = document.querySelector(`[data-sticky-id="${n.id}"]`);
                 if(!el) return;
                 // compute dynamic minimum width so actions aren't clipped
                 const dynMin = computeMinWidthFor(el);
-                const maxW = Math.max(dynMin, window.innerWidth - 2*M);
+                const maxW = Math.max(dynMin, vw - 2*M);
                 let desiredW = Math.min(el.offsetWidth || (n.w||300), maxW);
                 if(desiredW < dynMin) desiredW = dynMin;
                 el.style.width = desiredW + 'px';
                 // center horizontally
-                const left = Math.max(M, Math.min(window.innerWidth - desiredW - M, Math.round((window.innerWidth - desiredW)/2)));
+                const left = Math.max(M, Math.min(vw - desiredW - M, Math.round((vw - desiredW)/2)));
                 // position vertically just under the dock/title if provided, otherwise keep current top
                 const top = (typeof topDock === 'number' ? Math.max(M, Math.round(topDock + (dockH||0) + 12)) : Math.max(M, el.offsetTop || M));
                 el.style.left = left + 'px';
@@ -17736,12 +17778,12 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
     function renderNoteWindow(n){
         let el = document.querySelector(`[data-sticky-id="${n.id}"]`);
         if(!el){ el = document.createElement('div'); el.className = `sticky-note c-${n.color||'yellow'}`; el.setAttribute('data-sticky-id', n.id); document.body.appendChild(el); }
-            // layout: flex so body area always fills and is editable
+                // layout: flex so body area always fills and is editable
             el.style.display = 'flex';
             el.style.flexDirection = 'column';
             const MIN_H = 140;
-    // Clamp starting position within viewport with margins
-    const vw = window.innerWidth, vh = window.innerHeight; const M = 8;
+            // Clamp starting position within viewport with margins (layout px)
+            const { vw, vh } = viewportInLayoutPx(); const M = 8;
     const startX = Math.max(M, Math.min(vw - (n.w||300) - M, (n.x||20)));
     const startY = Math.max(M, Math.min(vh - (n.h||220) - M, (n.y||80)));
     el.style.left = startX + 'px';
@@ -17843,18 +17885,39 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     try{ const dynMin = computeMinWidthFor(el); el.style.minWidth = dynMin + 'px'; if(prevW < dynMin){ el.style.width = dynMin + 'px'; } }catch{}
                     try{ layoutSlot(prevSlot); setOccupiedFlags(); }catch{}
                 }
-                dragging=true; head.setPointerCapture(e.pointerId); bringToFront(el); start={x:e.clientX,y:e.clientY,left:el.offsetLeft,top:el.offsetTop}; el.style.transition='none';
+                dragging=true;
+                head.setPointerCapture(e.pointerId);
+                bringToFront(el);
+                start={x:e.clientX,y:e.clientY,left:el.offsetLeft,top:el.offsetTop, s:getUiScale()};
+                el.style.transition='none';
             });
-        head.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dx=e.clientX-start.x, dy=e.clientY-start.y; let L = start.left+dx, T=start.top+dy; const vw=window.innerWidth, vh=window.innerHeight; const M=4; L=Math.max(M, Math.min(vw - el.offsetWidth - M, L)); T=Math.max(M, Math.min(vh - el.offsetHeight - M, T)); el.style.left=L+'px'; el.style.top=T+'px';
-            // slot hover highlight under center
-            let hovered=-1; const cx=L+el.offsetWidth/2, cy=T+el.offsetHeight/2;
-            try{ getSlots().forEach((s,i)=>{ const r=s.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ hovered=i; } }); }catch{}
+        head.addEventListener('pointermove', (e)=>{
+            if(!dragging) return;
+            const s = start.s || getUiScale();
+            const dx=(e.clientX-start.x)/s, dy=(e.clientY-start.y)/s;
+            let L = start.left+dx, T=start.top+dy;
+            const vw=window.innerWidth/s, vh=window.innerHeight/s;
+            const M=4;
+            L=Math.max(M, Math.min(vw - el.offsetWidth - M, L));
+            T=Math.max(M, Math.min(vh - el.offsetHeight - M, T));
+            el.style.left=L+'px'; el.style.top=T+'px';
+            // slot hover highlight under center (use DOMRects so scaling stays correct)
+            let hovered=-1;
+            try{
+                const nr = el.getBoundingClientRect();
+                const cx = nr.left + nr.width/2, cy = nr.top + nr.height/2;
+                getSlots().forEach((slotEl,i)=>{ const r=slotEl.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ hovered=i; } });
+            }catch{}
             highlightSlot(hovered>=0?hovered:null);
         });
         head.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; head.releasePointerCapture(e.pointerId);
-            // snap to slot if released over one
-            let target=-1; const cx=el.offsetLeft+el.offsetWidth/2, cy=el.offsetTop+el.offsetHeight/2;
-            try{ getSlots().forEach((s,i)=>{ const r=s.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ target=i; } }); }catch{}
+            // snap to slot if released over one (use DOMRects so scaling stays correct)
+            let target=-1;
+            try{
+                const nr = el.getBoundingClientRect();
+                const cx = nr.left + nr.width/2, cy = nr.top + nr.height/2;
+                getSlots().forEach((slotEl,i)=>{ const r=slotEl.getBoundingClientRect(); if(cx>=r.left && cx<=r.right && cy>=r.top && cy<=r.bottom){ target=i; } });
+            }catch{}
             highlightSlot(null);
             if(target>=0){ n = updateNote(n.id, { preW: el.offsetWidth, preH: el.offsetHeight, clippedSlot: target }) || n; try{ layoutSlot(target); setOccupiedFlags(); }catch{} }
             else{ updateNote(n.id, { x: el.offsetLeft, y: el.offsetTop }); }
@@ -17863,8 +17926,20 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
         // resize
             const res = el.querySelector('.sticky-resize');
         let resizing=false, rs={x:0,y:0,w:0,h:0};
-            res.addEventListener('pointerdown', (e)=>{ if(n.clippedSlot!=null) return; e.preventDefault(); resizing=true; res.setPointerCapture(e.pointerId); bringToFront(el); rs={x:e.clientX,y:e.clientY,w:el.offsetWidth,h:el.offsetHeight}; });
-            res.addEventListener('pointermove', (e)=>{ if(!resizing) return; const dx=e.clientX-rs.x, dy=e.clientY-rs.y; const dynMin = computeMinWidthFor(el); const vw=window.innerWidth, vh=window.innerHeight; const M=8; const maxW = Math.max(dynMin, vw - el.offsetLeft - M); const maxH = Math.max(MIN_H, vh - el.offsetTop - M); const W=Math.max(dynMin, Math.min(maxW, rs.w+dx)); const H=Math.max(MIN_H, Math.min(maxH, rs.h+dy)); el.style.width=W+'px'; el.style.height=H+'px'; });
+            res.addEventListener('pointerdown', (e)=>{ if(n.clippedSlot!=null) return; e.preventDefault(); resizing=true; res.setPointerCapture(e.pointerId); bringToFront(el); rs={x:e.clientX,y:e.clientY,w:el.offsetWidth,h:el.offsetHeight,s:getUiScale()}; });
+            res.addEventListener('pointermove', (e)=>{
+                if(!resizing) return;
+                const s = rs.s || getUiScale();
+                const dx=(e.clientX-rs.x)/s, dy=(e.clientY-rs.y)/s;
+                const dynMin = computeMinWidthFor(el);
+                const vw=window.innerWidth/s, vh=window.innerHeight/s;
+                const M=8;
+                const maxW = Math.max(dynMin, vw - el.offsetLeft - M);
+                const maxH = Math.max(MIN_H, vh - el.offsetTop - M);
+                const W=Math.max(dynMin, Math.min(maxW, rs.w+dx));
+                const H=Math.max(MIN_H, Math.min(maxH, rs.h+dy));
+                el.style.width=W+'px'; el.style.height=H+'px';
+            });
         res.addEventListener('pointerup', (e)=>{ if(!resizing) return; resizing=false; res.releasePointerCapture(e.pointerId); updateNote(n.id, { w: el.offsetWidth, h: el.offsetHeight, x: el.offsetLeft, y: el.offsetTop }); });
         el.addEventListener('mousedown', ()=> bringToFront(el));
     }
@@ -17907,13 +17982,14 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
 
         function positionDockAndPanel(){
             try{
+                const { s, vh } = viewportInLayoutPx();
                 const GAP_TITLE_TO_DOCK = 6;   // px gap between title and dock
                 const GAP_DOCK_TO_PANEL = 8;  // px gap between dock and panel top
                 const GAP_DOCK_TO_RAIL  = 8;  // px gap between dock and rail top
 
                 const r = titleBox?.getBoundingClientRect();
-                const topDock = r ? Math.round(r.bottom + GAP_TITLE_TO_DOCK) : 40;
-                const dockH = Math.round(dock?.getBoundingClientRect()?.height || 40);
+                const topDock = r ? Math.round((r.bottom / s) + GAP_TITLE_TO_DOCK) : 40;
+                const dockH = Math.round(dock?.offsetHeight || 40);
 
                 if(dock){
                     dock.style.top = `${topDock}px`;
@@ -17938,7 +18014,7 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     const scaleStr = (cs.getPropertyValue('--stickyScale') || '1').trim();
                     const s = Math.max(0.5, Math.min(1.5, parseFloat(scaleStr) || 1));
                     const paddingBottom = 8; // keep a small visual gutter at bottom
-                    const avail = Math.max(0, Math.floor(window.innerHeight - topRail - paddingBottom));
+                    const avail = Math.max(0, Math.floor(vh - topRail - paddingBottom));
                     // Account for scaleY: set pre-scale height so the scaled visual fills to bottom
                     const targetH = Math.ceil(avail / s);
                     rail.style.height = `${targetH}px`;
@@ -17983,7 +18059,8 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                         const cRect = getControlsAnchorRect();
                         const rRect = radio.getBoundingClientRect();
                         const gapTop = 12, gapBottom = 12;
-                        const initialTop = Math.round(cRect.bottom + gapTop);
+                        // Convert viewport DOMRect pixels into layout px so fixed-positioning stays correct under global scaling.
+                        const initialTop = Math.round((cRect.bottom / s) + gapTop);
 
                         // The left magnet's height is independent of the radio module. Record
                         // an initial fixed height (from CSS or current offset) on first run and
@@ -18020,7 +18097,7 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                             let rpRaise = 0;
                             try{ const csR = getComputedStyle(radio); const v = csR.getPropertyValue('--rpRaise'); if(v) rpRaise = parseInt(v) || 0; }catch{}
                             const bottomInset = gapBottom; // matches radio CSS 12px bottom padding
-                            const hiddenRadioTop = Math.round(window.innerHeight - rpRaise - bottomInset - radioMinH);
+                            const hiddenRadioTop = Math.round(vh - (rpRaise / s) - bottomInset - radioMinH);
                             // Target height so magnet bottom ends at the hidden radio top minus separation
                             const target = Math.round(hiddenRadioTop - initialTop - SEPARATION);
                             desiredH = Math.max(120, target);
@@ -18048,7 +18125,7 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     const hz = document.getElementById('stickyRailHoverzone');
                     if(handle || hz){
                         const rr = rail?.getBoundingClientRect();
-                        const cy = rr ? Math.round(rr.top + rr.height/2) : Math.round(window.innerHeight/2);
+                        const cy = rr ? Math.round((rr.top + rr.height/2) / getUiScale()) : Math.round((window.innerHeight / getUiScale())/2);
                         if(handle){ handle.style.top = `${cy}px`; }
                         if(hz){ hz.style.top = `${cy}px`; }
                     }
@@ -18159,7 +18236,7 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     // also re-position the left magnet tab after viewport changes
                     try{ const _=document.getElementById('leftMagnet'); if(_) {/* noop; work done in positionDockAndPanel */} }catch{}
                     try{
-                        const vw = window.innerWidth, vh = window.innerHeight; const M=8;
+                        const { vw, vh } = viewportInLayoutPx(); const M=8;
                         document.querySelectorAll('.sticky-note').forEach(function(el){
                             // Clamp size to viewport
                             const w = Math.min(parseInt(el.style.width||el.offsetWidth)||300, vw - 2*M);
@@ -18230,7 +18307,10 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                         e.preventDefault();
                     });
                     window.addEventListener('pointermove', (e)=>{
-                        if(!dragging) return; const dx = startX - e.clientX; setRailW(startW + dx);
+                        if(!dragging) return;
+                        const s = getUiScale();
+                        const dx = (startX - e.clientX) / s;
+                        setRailW(startW + dx);
                     });
                     window.addEventListener('pointerup', (e)=>{
                         if(!dragging) return; dragging=false; handle.classList.remove('dragging');
@@ -18282,13 +18362,13 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                     if(!handle) return;
                     let dragging=false, startX=0, startW=getW();
                     handle.addEventListener('pointerdown', (e)=>{ dragging=true; startX=e.clientX; startW=getW(); try{ handle.setPointerCapture(e.pointerId); }catch{} e.preventDefault(); });
-                    window.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dx = e.clientX - startX; setW(startW + dx); });
+                    window.addEventListener('pointermove', (e)=>{ if(!dragging) return; const s = getUiScale(); const dx = (e.clientX - startX) / s; setW(startW + dx); });
                     window.addEventListener('pointerup', (e)=>{ if(!dragging) return; dragging=false; try{ handle.releasePointerCapture(e.pointerId); }catch{} });
                     // keyboard support
                     handle.setAttribute('tabindex','0');
                     handle.addEventListener('keydown', (e)=>{ const step = e.shiftKey?20:10; if(e.key==='ArrowLeft'){ e.preventDefault(); setW(getW()-step); } else if(e.key==='ArrowRight'){ e.preventDefault(); setW(getW()+step); } else if(e.key==='Home'){ e.preventDefault(); setW(parseInt(handle.dataset.min||'180',10)); } else if(e.key==='End'){ e.preventDefault(); setW(parseInt(handle.dataset.max||'520',10)); } });
                     // keep resizer aligned vertically with left magnet tab span on panel/dock movement
-                    const sync = ()=>{ try{ const lm = document.getElementById('leftMagnet'); const hz = document.getElementById('leftTabHoverzone'); if(lm && (handle||hz)){ const r = lm.getBoundingClientRect(); const cy = Math.round(r.top + r.height/2); if(handle) handle.style.top = cy + 'px'; if(hz) hz.style.top = cy + 'px'; } }catch{} };
+                    const sync = ()=>{ try{ const lm = document.getElementById('leftMagnet'); const hz = document.getElementById('leftTabHoverzone'); if(lm && (handle||hz)){ const r = lm.getBoundingClientRect(); const s = getUiScale(); const cy = Math.round((r.top + r.height/2) / s); if(handle) handle.style.top = cy + 'px'; if(hz) hz.style.top = cy + 'px'; } }catch{} };
                     window.addEventListener('resize', sync);
                     setTimeout(sync, 0);
                 })();
@@ -18296,11 +18376,20 @@ o.`Y8b   88   88 Y88 88  .o Yb   dP Yb  "88
                 // Track title box position changes (caused by --topSafeArea updates) and realign
                 try{
                     let __lastTop = -1;
+                    let __lastCapsuleH = -1;
                     const watch = ()=>{
                         try{
                             const rb = titleBox?.getBoundingClientRect();
                             const t = rb ? Math.round(rb.top) : -1;
                             if(t !== __lastTop){ __lastTop = t; positionDockAndPanel(); }
+                            try{
+                                const capsule = document.querySelector('.theme-capsule');
+                                if(capsule){
+                                    // Use offsetHeight (layout px) so the CSS variable matches button spacing
+                                    const h = Math.max(0, Math.round(capsule.offsetHeight || capsule.getBoundingClientRect().height));
+                                    if(h !== __lastCapsuleH){ __lastCapsuleH = h; document.documentElement.style.setProperty('--theme-capsule-h', h + 'px'); positionDockAndPanel(); }
+                                }
+                            }catch{}
                         }catch{}
                         requestAnimationFrame(watch);
                     };
