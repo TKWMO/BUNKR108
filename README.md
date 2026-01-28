@@ -54,7 +54,7 @@ BUNKR108 is a fully client-side study and quiz-generation interface. It can inge
 ---
 
 ## Quick Start
-1. Open the demo and accept Terms of Use.
+1. Open the demo.
 2. (Optional) Add a Gemini API key to enable AI-supported features.
 3. Load or paste MCQs, parse, preview, and start a quiz.
 

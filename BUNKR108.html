@@ -9,6 +9,21 @@
             Note: this project uses inline scripts and some CDN imports. -->
         <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; style-src 'self' https: 'unsafe-inline'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' blob:; connect-src 'self' https:;" />
     <script>
+        // Optional Terms-of-Use enforcement for the hosted demo.
+        // This intentionally does NOT run for local/offline copies.
+        (function(){
+            try{
+                if(location.protocol !== 'https:' && location.protocol !== 'http:') return;
+                if(location.hostname !== 'tkwmo.github.io') return;
+                var s = document.createElement('script');
+                s.src = './assets/js/boot/tos.supplemental.js';
+                s.defer = true;
+                s.onerror = function(){};
+                document.head.appendChild(s);
+            }catch(e){}
+        })();
+    </script>
+    <script>
         // Minimal fallback so code can call normalizeGreek() early.
         // The real implementation (if defined later) can overwrite this.
         (function(){
@@ -1552,33 +1567,6 @@
             .calendar-panel .cal-note:focus{ outline: 2px solid rgba(96,165,250,.28); outline-offset: 2px }
         </style>
 
-    <style>
-    /* UI lock while TOS not accepted */
-    .tos-overlay{ position:fixed; inset:0; background: rgba(2,6,12,0.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index:22000; display:flex; align-items:center; justify-content:center; }
-    .tos-overlay.hidden{ display:none }
-    .tos-unlock-panel{ background: linear-gradient(180deg, rgba(8,12,18,.98), rgba(6,10,14,.98)); border:1px solid rgba(255,255,255,0.04); padding:18px; border-radius:12px; max-width:520px; color:var(--ink); box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
-    .tos-unlock-panel p{ color:var(--muted); font-size:13px; margin:0 0 12px }
-    .tos-unlock-text{ color:var(--muted); font-size:13px; margin:0 0 12px }
-    .tos-unlock-actions{ display:flex; gap:10px; justify-content:center }
-    /* Use a root class so we can selectively keep TOS buttons active */
-    .tos-locked * { pointer-events: none !important; }
-    /* Keep only the TOS unlock overlay and the modal interactive while locked */
-    .tos-locked #tosOverlay .tos-unlock-panel,
-    .tos-locked #tosOverlay .tos-unlock-panel *,
-    .tos-locked #tosModal,
-    .tos-locked #tosModal * { pointer-events: auto !important; }
-    .tos-locked .page, .tos-locked .card, .tos-locked .api-key-bar, .tos-locked .card.pad { filter: blur(4px) brightness(.96); }
-    </style>
-
-    <style>
-    /* TOS box styles */
-    .tos-box{ margin-top:12px; margin-bottom:12px; }
-    .tos-box .muted{ color:var(--muted); }
-    .tos-box .btn.small{ padding:6px 8px; font-size:12px }
-    .tos-box .flex { align-items:center }
-    .tos-box .muted strong{ color:inherit }
-    .tos-box .right{ margin-left:auto }
-    </style>
         <style>
             /* Sticky rail on the right with 5 clip slots */
             .sticky-rail{ position:fixed; top: calc(var(--topSafeArea) + var(--stickyTopGap)); bottom: 0; right: calc(12px + env(safe-area-inset-right)); z-index:189; display:flex; flex-direction:column; gap:10px; pointer-events:none; padding-bottom: 8px; transform-origin: top right; transform: scaleY(var(--stickyScale)); }
@@ -6315,7 +6303,6 @@
             </label>
         </div>
         <!-- Gemini API key subtext moved to About AI Elements section -->
-        <!-- (compact widget removed; expanded TOS box inserted below AI Elements section) -->
         <div class="card pad" id="setup">
             <div class="row">
                 <div class="col">
@@ -6689,14 +6676,6 @@ ANSWER KEY
 .gemini-status-link{ margin-left:6px; text-decoration: underline; }
 
 .reset-bar{ margin-bottom:18px; }
-</style>
-<style>
-/* TOS modal and widget styles */
-.tos-body pre{ white-space: pre-wrap; font-family: inherit; font-size:13px; }
-.tos-widget{ display:flex; align-items:center; gap:8px; justify-content:flex-end; margin:8px auto; max-width:960px; }
-.tos-status{ color:var(--muted); font-size:13px }
-.tos-widget .tos-actions{ display:flex; gap:6px }
-.tos-widget .btn.small{ padding:6px 8px; font-size:12px }
 </style>
     <!-- Flashcards / SRS Panel (moved above Preview) -->
     <section id="flashcardsPanel" class="card pad">
@@ -7368,257 +7347,7 @@ ANSWER KEY
     }
     </style>
 
-        <!-- Terms of Use Modal (initial popup) -->
-        <div id="tosModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Terms of Use and Disclaimer">
-            <div class="modal-backdrop"></div>
-            <div class="modal-panel" id="tosPanel">
-                <div class="modal-header">
-                    <h3>Terms of Use & Disclaimer — Effective Dec 25, 2025 (v1.1)</h3>
-                    <button id="tosClose" class="btn small" aria-label="Close">Close</button>
-                </div>
-                <div class="modal-body tos-body" id="tosContent">
-                    <pre>Terms of Use & Disclaimer
-Effective Date: December 25, 2025
-Version: 1.1
-________________________________________
-1. Overview and Acceptance
-This website (the “Service”) provides a hosted demonstration of the BUNKR108 open-source multiple-choice question (MCQ) generator (the “Project").
-By accessing or using this Service or any downloaded copy of the Project, you agree to these Terms of Use (“Terms"). If you do not agree, you must not use the Service.
-The Project is made publicly available for educational and personal use only. This Service is offered as a client-side demo with no user registration, no server-side storage, and no commercial intent.
-________________________________________
-2. Open-Source License (MIT)
-The Project’s source code is licensed under the MIT License, granting you broad rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, subject to inclusion of the original license notice and attribution to the authors.
-Nothing in these Terms alters or limits your rights under the MIT License. You may view the complete license text at: https://opensource.org/licenses/MIT
-________________________________________
-3. Nature of the Hosted Demo
-The hosted instance found at https://tkwmo.github.io/BUNKR108/BUNKR108.html is a convenience demo of the open-source Project.
-All data processing occurs locally in your browser.
-No uploaded documents, quiz content, or API keys are transmitted to or stored by the website operator.
-Use of the hosted demo is entirely voluntary. For privacy or customization, users are strongly encouraged to download the repository from GitHub and run the Project locally. Github repository URL: https://github.com/TKWMO/BUNKR108
-________________________________________
-4. Local Processing and API Keys
-The Service runs fully in the browser using local storage (IndexedDB/localStorage).
-If you choose to enable AI-powered features, you may enter an external API key (e.g., Gemini). This key is stored only in your browser and never sent to the site operator.
-There are no server-side safeguards for key security. You assume all responsibility for protecting, rotating, and revoking your own API keys.
-If this is a concern, use the self-hosted version of the Project.
-________________________________________
-5. User Responsibility and Self-Hosting Option
-You are free—and encouraged—to download and adapt the Project for your own use, subject to the MIT License.
-You are solely responsible for:
-• How you configure and operate the code;
-• Any content you input or generate; and
-• Compliance with all applicable laws in your jurisdiction.
-By using, modifying, or redistributing the Project, you acknowledge that you act independently and assume full responsibility for all associated outcomes.
-________________________________________
-6. Third-Party APIs and Services
-Certain features connect directly from your browser to third-party endpoints, including but not limited to:
-• Gemini (Google Generative AI) – remote text generation and parsing (the app imports the Gemini SDK via esm.run which then connects to Google’s Generative Language endpoints when you invoke AI features);
-• Library CDNs and package hosts (esm.run, jsDelivr, unpkg, cdnjs) used to load third-party JavaScript libraries such as pdf.js/pdf.worker, JSZip, mammoth (DOCX), tesseract.js (OCR), pako, and related tooling;
-• Content proxies and CORS intermediaries (api.allorigins.win, cors.isomorphic-git.org, r.jina.ai) used in a small number of fetch operations as fallbacks or to work around CORS restrictions;
-• Public content feeds and audio streams accessed by example features (for instance RSS/news feeds such as feeds.npr.org and public audio stream endpoints such as stream.srg-ssr.ch, ice5.somafm.com, strm112.1.fm, and similar public hosts).
 
-These services are independent of this Project and operate under their own terms and privacy policies. When you invoke an AI feature or request any content that requires an external endpoint, your browser connects directly to those third-party services. The Project does not forward, persist, or otherwise intercept your transmitted data beyond what the third-party service receives in a direct browser request.
-________________________________________
-7. Acceptable Use and Prohibited Conduct
-You agree not to use the Service or Project for:
-• Any illegal, harmful, or fraudulent purpose;
-• Uploading or generating content that violates privacy, intellectual property, or export laws;
-• Impersonation of real persons, officials, or entities;
-• Harassment, stalking, or targeted hate speech;
-• Political or election manipulation without disclosure;
-• Processing regulated data (e.g., PHI under HIPAA, children’s data under COPPA, financial records);
-• Creating deceptive synthetic or “deepfake” media;
-• Training or redistributing AI model outputs that violate copyright or data-use agreements.
-Violation of these rules may result in access being blocked from the hosted demo.
-________________________________________
-8. Data Privacy and Security Notice
-This Service does not:
-• Require accounts;
-• Collect analytics or telemetry;
-• Store user-generated content on a remote server;
-• Share or sell any user information.
-All user data (documents, API keys, question sets) is confined to your local browser environment and can be deleted at any time via your browser settings.
-Because there is no server-side persistence, the operator is not a data controller under GDPR or similar regulations.
-________________________________________
-9. Intellectual Property and Attribution
-• You retain ownership of all content you upload and any questions you generate.
-• The Project’s source code, name, and visual design are protected by copyright and MIT license attribution.
-• You may modify and distribute the Project, provided that you preserve the original license notice and attribution in visible form.
-• You may not present derivative versions as the official [Project Name] release or imply endorsement by its authors.
-________________________________________
-10. No Warranty / Educational Disclaimer
-The Project and all related materials are provided “AS IS” without warranty of any kind, express or implied, including but not limited to:
-• Accuracy, completeness, or reliability of generated questions;
-• Suitability for educational, professional, or assessment use;
-• Error-free or uninterrupted operation.
-All outputs generated through AI features should be independently verified before use in any instructional or evaluative setting.
-________________________________________
-11. Limitation of Liability
-To the maximum extent permitted by applicable law:
-• The developers, contributors, and maintainers of this Project shall not be liable for any direct, indirect, incidental, consequential, or special damages arising from or in connection with your use or inability to use the Service or Project.
-• This includes, without limitation, loss of data, misuse of API keys, or inaccuracies in generated content.
-Your sole remedy for dissatisfaction with the Service is to stop using it.
-________________________________________
-12. Indemnification
-You agree to defend, indemnify, and hold harmless the developers, contributors, and affiliates of this Project from and against any claims, damages, liabilities, or expenses arising out of:
-• Your use, configuration, or distribution of the Project;
-• Any content or data you submit; or
-• Any breach of these Terms or applicable law.
-________________________________________
-13. Termination and Availability
-The maintainers may modify, suspend, or discontinue the hosted demo at any time without notice.
-This will not affect your right to continue using the open-source Project independently under the MIT License.
-You may stop using the Service or delete all locally stored data at any time.
-________________________________________
-14. Modifications to Terms or Project
-These Terms may be updated periodically.
-Changes take effect when posted to this site or repository.
-Your continued use after updates constitutes acceptance of the new Terms.
-The Project’s source code and dependencies may evolve, and functionality may change without prior notice.
-________________________________________
-15. Governing Law and Jurisdiction
-These Terms are governed by the laws of the State of Texas, United States, without regard to conflict-of-law principles.
-Any disputes arising under or in connection with these Terms shall be resolved exclusively in the courts located in Harris County, Texas, USA.
-_____________________________
-17. Effective Date and Version
-Effective Date: December 25, 2025
-Version: 1.1
-</pre>
-                </div>
-                <div class="flex justify-end gap-8 mt-12">
-                    <button id="tosDecline" class="btn">Decline</button>
-                    <button id="tosAccept" class="btn primary">Accept</button>
-                </div>
-            </div>
-        </div>
-        <script>
-        (function(){
-            const KEY = 'tos.accepted.v1.1';
-            const tosModal = document.getElementById('tosModal');
-            const tosPanel = document.getElementById('tosPanel');
-            const tosAccept = document.getElementById('tosAccept');
-            const tosDecline = document.getElementById('tosDecline');
-            const tosClose = document.getElementById('tosClose');
-            const viewTosBtn = document.getElementById('viewTosBtn');
-            // support either the compact widget (#tosState) or the boxed module (#tosStateBox)
-            let tosState = document.getElementById('tosState');
-            let tosStateBox = document.getElementById('tosStateBox');
-            const tosStatus = document.getElementById('tosStatus');
-
-            function setWidgetState(accepted){
-                try{
-                    if(!tosState) tosState = document.getElementById('tosState');
-                    if(!tosStateBox) tosStateBox = document.getElementById('tosStateBox');
-                    if(tosState){ tosState.textContent = accepted ? 'Accepted' : 'Not accepted'; tosState.style.color = accepted ? '#4dd17a' : ''; }
-                    if(tosStateBox){ tosStateBox.textContent = accepted ? 'Accepted' : 'Not accepted'; tosStateBox.style.color = accepted ? '#4dd17a' : ''; }
-                }catch{}
-            }
-
-            // UI lock/unlock: add/remove a class on the root to blur and block interactions
-            function lockUI(){ try{ 
-                    document.documentElement.classList.add('tos-locked'); 
-                    const ov = document.getElementById('tosOverlay'); if(ov) ov.classList.remove('hidden');
-                    // Disable keyboard focus/tabbing for all interactive elements outside the TOS overlay and modal
-                    try{
-                        const tosOverlay = document.getElementById('tosOverlay');
-                        const tosModal = document.getElementById('tosModal');
-                        const all = Array.from(document.querySelectorAll('a, button, input, select, textarea, [tabindex]'));
-                        all.forEach(el=>{
-                            try{
-                                if(!el) return;
-                                // Ignore elements inside the overlay or the modal
-                                if((tosOverlay && tosOverlay.contains(el)) || (tosModal && tosModal.contains(el))) return;
-                                // Store previous tabindex if present
-                                if(el.hasAttribute('tabindex')) el.dataset.prevTabindex = el.getAttribute('tabindex');
-                                else el.dataset.prevTabindex = '__none__';
-                                // mark as disabled for unlock restoration
-                                el.dataset._tosDisabled = '1';
-                                // Remove from tab order
-                                try{ el.setAttribute('tabindex', '-1'); }catch(e){}
-                                // mark as aria-disabled for screen readers
-                                try{ el.setAttribute('aria-disabled', 'true'); }catch(e){}
-                            }catch(e){}
-                        });
-                        // Save currently focused element id to restore later
-                        try{ const ae = document.activeElement; if(ae && ae.id) document.documentElement.dataset._prevActive = ae.id; }catch(e){}
-                        // Move focus to the unlock button for accessibility
-                        try{ document.getElementById('tosUnlockBtn')?.focus(); }catch(e){}
-                    }catch(e){}
-                }catch{} }
-            function unlockUI(){ try{ 
-                    document.documentElement.classList.remove('tos-locked'); 
-                    const ov = document.getElementById('tosOverlay'); if(ov) ov.classList.add('hidden');
-                    // Restore tabindex / aria-disabled for elements we modified
-                    try{
-                        const modified = Array.from(document.querySelectorAll('[data-_tosDisabled]'));
-                        modified.forEach(el=>{
-                            try{
-                                if(!el) return;
-                                const prev = el.dataset.prevTabindex;
-                                if(typeof prev !== 'undefined'){
-                                    if(prev === '__none__') el.removeAttribute('tabindex'); else el.setAttribute('tabindex', prev);
-                                    delete el.dataset.prevTabindex;
-                                }
-                                delete el.dataset._tosDisabled;
-                                try{ el.removeAttribute('aria-disabled'); }catch(e){}
-                            }catch(e){}
-                        });
-                        // Restore previous focus if possible
-                        try{ const prevId = document.documentElement.dataset._prevActive; if(prevId){ const el = document.getElementById(prevId); if(el) el.focus(); delete document.documentElement.dataset._prevActive; } }catch(e){}
-                    }catch(e){}
-                }catch{} }
-
-            function saveAccepted(){ try{ localStorage.setItem(KEY, '1'); }catch{} setWidgetState(true); unlockUI(); }
-            function clearAccepted(){ try{ localStorage.removeItem(KEY); }catch{} setWidgetState(false); lockUI(); }
-
-            function openModal(){
-                try{
-                    // Hide the centered unlock overlay so the modal's own backdrop appears above the blurred plane
-                    const ov = document.getElementById('tosOverlay'); if(ov){ ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true'); }
-                }catch(e){}
-                tosModal.classList.remove('hidden'); tosModal.setAttribute('aria-hidden','false'); document.documentElement.classList.add('modal-open'); document.body.classList.add('modal-open');
-                // focus the close button for accessibility
-                try{ document.getElementById('tosClose')?.focus(); }catch(e){}
-            }
-            function closeModal(){
-                tosModal.classList.add('hidden'); tosModal.setAttribute('aria-hidden','true'); document.documentElement.classList.remove('modal-open'); document.body.classList.remove('modal-open');
-                try{
-                    // If the TOS has not been accepted, restore the locked overlay so the page remains inaccessible
-                    const ov = document.getElementById('tosOverlay'); const has = !!localStorage.getItem(KEY);
-                    if(ov){ if(!has){ ov.classList.remove('hidden'); ov.setAttribute('aria-hidden','false'); } else { ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true'); } }
-                }catch(e){}
-            }
-
-            // Wait until DOM is ready so boxed elements exist, then wire buttons and initialize
-            function ready(cb){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cb, { once:true }); else cb(); }
-            ready(()=>{
-                // Re-query DOM elements that may appear after this script block
-                try{
-                    // modal buttons
-                    const _tosAccept = document.getElementById('tosAccept');
-                    const _tosDecline = document.getElementById('tosDecline');
-                    const _tosClose = document.getElementById('tosClose');
-                    const _viewTosBtn = document.getElementById('viewTosBtn');
-                    const _tosBoxView = document.getElementById('tosBoxView');
-                    // Wire handlers
-                    if(_tosAccept) _tosAccept.addEventListener('click', ()=>{ saveAccepted(); closeModal(); });
-                    if(_tosDecline) _tosDecline.addEventListener('click', ()=>{ clearAccepted(); closeModal(); });
-                    if(_tosClose) _tosClose.addEventListener('click', ()=>{ closeModal(); });
-                    if(_viewTosBtn) _viewTosBtn.addEventListener('click', ()=>{ openModal(); });
-                    if(_tosBoxView) _tosBoxView.addEventListener('click', ()=>{ openModal(); });
-                    const _tosUnlockBtn = document.getElementById('tosUnlockBtn');
-                    if(_tosUnlockBtn) _tosUnlockBtn.addEventListener('click', ()=>{ openModal(); });
-
-                    // Initialize widget/box state now that elements exist
-                    try{ const v = localStorage.getItem(KEY); const accepted = !!v; setWidgetState(accepted); if(!accepted){ lockUI(); setTimeout(openModal, 250); } else { unlockUI(); } }catch{ setWidgetState(false); lockUI(); setTimeout(openModal, 250); }
-                }catch(e){ console.warn('TOS init failed', e); }
-            });
-
-            // Update header count with aggregate size (KB)
-            try{ savedCount.textContent = `${arr.length} (${(totalBytes/1024).toFixed(1)} KB)`; }catch(e){}
-
-        })();
-        </script>
 
         <div id="quiz" class="card pad hidden"></div>
 
@@ -10308,20 +10037,7 @@ Version: 1.1
             </div>
         </section>
 
-    <!-- === Terms of Use Box (placed under 'About AI Elements') === -->
-    <section id="tos-box" class="card pad tos-box">
-        <h3 class="mt-0 mb-8">Terms of Use & Disclaimer</h3>
-        <div class="muted">
-            <p>Effective Date: December 25, 2025 — Version: 1.1</p>
-            <p>This hosted demo runs entirely in your browser. Acceptance of the full Terms of Use is required to use AI features. Click "View TOS" to read the full Terms.</p>
-        </div>
-        <div class="flex gap-8 mt-8">
-            <span id="tosBoxState" class="muted">Signed: <strong id="tosStateBox">Unknown</strong></span>
-            <div class="right">
-                <button id="tosBoxView" class="btn small">View TOS</button>
-            </div>
-        </div>
-    </section>
+
     <script>
     (function(){
         const dot = document.getElementById('geminiStatusDot');
@@ -10394,17 +10110,6 @@ Version: 1.1
         try{ document.getElementById('globalGemKey')?.addEventListener('input', updateGeminiStatus); document.getElementById('globalGemEnable')?.addEventListener('change', updateGeminiStatus); }catch(e){}
     })();
     </script>
-
-    <!-- Overlay used when TOS not accepted to block/blur the UI; contains centered unlock panel -->
-    <div id="tosOverlay" class="tos-overlay hidden" aria-hidden="true">
-        <div class="tos-unlock-panel" role="dialog" aria-label="Accept Terms to access site">
-            <p class="tos-unlock-text">This site is restricted until you accept the Terms of Use. You can view and accept the Terms to unlock access.</p>
-            <div class="tos-unlock-actions">
-                <button id="tosUnlockBtn" class="btn primary">View & Sign TOS</button>
-            </div>
-        </div>
-    </div>
-
         <!-- === style touch-ups (can live in your existing <style> block) === -->
         <style>
 
@@ -10469,34 +10174,6 @@ Version: 1.1
             .ai-key-missing #aiExplanationKeyDot{ background: var(--ai-key-missing-color, #ef4444) !important; box-shadow: none; }
         </style>
 
-        <style>
-        /* Compact TOS box: reduced vertical footprint while preserving content and controls */
-        .tos-box{
-            max-width: none;
-            width: 100%;
-            box-sizing: border-box;
-            margin-top: 8px;
-            margin-bottom: 12px;
-            padding: 8px 12px; /* tighter padding */
-            border-radius: 12px;
-        }
-        /* Tighter text sizing and spacing for the compact card */
-        .tos-box .muted, .tos-box p, .tos-box span { font-size: 11px; color: var(--muted, #9fb0c5); line-height:1.3; margin:0 }
-        .tos-box h3{ font-size: 14px; margin: 0 0 6px 0; font-weight:700 }
-        /* Reduce gap between state and actions and align vertically */
-        .tos-box .flex { gap: 6px }
-        .tos-box .right { margin-left: auto }
-        .tos-box #tosBoxState { font-size: 11px }
-        /* Make the View TOS button slightly smaller and tighter */
-        .tos-box .btn.small{ padding: 6px 8px; font-size: 12px; border-radius: 8px }
-        /* Responsive adjustments: keep compact spacing on narrow screens */
-        @media (max-width: 960px){ .tos-box{ width: calc(100% - 24px); margin-left:12px; margin-right:12px; } }
-        
-        /* Compact overlay unlock panel */
-        .tos-unlock-panel{ padding: 10px 12px; max-width: 520px; border-radius: 10px }
-        .tos-unlock-text{ font-size:13px; margin:0 0 8px }
-        .tos-unlock-actions .btn.primary{ padding: 8px 10px; font-size:13px }
-        </style>
 
     </div>
 
@@ -12898,8 +12575,6 @@ Correct answer: ${letters[it.correctIdx] || 'A'}. ${corrText}`;
                 try{
                     // If the mini-quiz modal is visible, disable global shortcuts
                     try{ const mq = document.getElementById('miniQuizModal'); if(mq && !mq.classList.contains('hidden')) return; }catch{}
-                    // If TOS lock is active, disable all keyboard shortcuts
-                    try{ if(document.documentElement && document.documentElement.classList && document.documentElement.classList.contains('tos-locked')) return; }catch{}
                     // If a pre-quiz overlay is active, ignore shortcuts
                     if(window.__preQuizOverlayActive) return;
                     if(!state || !state.started) return; // only when quiz active

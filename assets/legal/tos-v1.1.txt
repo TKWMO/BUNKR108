@@ -1,0 +1,106 @@
+Terms of Use & Disclaimer
+Effective Date: December 25, 2025
+Version: 1.1
+________________________________________
+1. Overview and Acceptance
+This website (the “Service”) provides a hosted demonstration of the BUNKR108 open-source multiple-choice question (MCQ) generator (the “Project").
+By accessing or using this Service or any downloaded copy of the Project, you agree to these Terms of Use (“Terms"). If you do not agree, you must not use the Service.
+The Project is made publicly available for educational and personal use only. This Service is offered as a client-side demo with no user registration, no server-side storage, and no commercial intent.
+________________________________________
+2. Open-Source License (MIT)
+The Project’s source code is licensed under the MIT License, granting you broad rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, subject to inclusion of the original license notice and attribution to the authors.
+Nothing in these Terms alters or limits your rights under the MIT License. You may view the complete license text at: https://opensource.org/licenses/MIT
+________________________________________
+3. Nature of the Hosted Demo
+The hosted instance found at https://tkwmo.github.io/BUNKR108/BUNKR108.html is a convenience demo of the open-source Project.
+All data processing occurs locally in your browser.
+No uploaded documents, quiz content, or API keys are transmitted to or stored by the website operator.
+Use of the hosted demo is entirely voluntary. For privacy or customization, users are strongly encouraged to download the repository from GitHub and run the Project locally. Github repository URL: https://github.com/TKWMO/BUNKR108
+________________________________________
+4. Local Processing and API Keys
+The Service runs fully in the browser using local storage (IndexedDB/localStorage).
+If you choose to enable AI-powered features, you may enter an external API key (e.g., Gemini). This key is stored only in your browser and never sent to the site operator.
+There are no server-side safeguards for key security. You assume all responsibility for protecting, rotating, and revoking your own API keys.
+If this is a concern, use the self-hosted version of the Project.
+________________________________________
+5. User Responsibility and Self-Hosting Option
+You are free—and encouraged—to download and adapt the Project for your own use, subject to the MIT License.
+You are solely responsible for:
+• How you configure and operate the code;
+• Any content you input or generate; and
+• Compliance with all applicable laws in your jurisdiction.
+By using, modifying, or redistributing the Project, you acknowledge that you act independently and assume full responsibility for all associated outcomes.
+________________________________________
+6. Third-Party APIs and Services
+Certain features connect directly from your browser to third-party endpoints, including but not limited to:
+• Gemini (Google Generative AI) – remote text generation and parsing (the app imports the Gemini SDK via esm.run which then connects to Google’s Generative Language endpoints when you invoke AI features);
+• Library CDNs and package hosts (esm.run, jsDelivr, unpkg, cdnjs) used to load third-party JavaScript libraries such as pdf.js/pdf.worker, JSZip, mammoth (DOCX), tesseract.js (OCR), pako, and related tooling;
+• Content proxies and CORS intermediaries (api.allorigins.win, cors.isomorphic-git.org, r.jina.ai) used in a small number of fetch operations as fallbacks or to work around CORS restrictions;
+• Public content feeds and audio streams accessed by example features (for instance RSS/news feeds such as feeds.npr.org and public audio stream endpoints such as stream.srg-ssr.ch, ice5.somafm.com, strm112.1.fm, and similar public hosts).
+
+These services are independent of this Project and operate under their own terms and privacy policies. When you invoke an AI feature or request any content that requires an external endpoint, your browser connects directly to those third-party services. The Project does not forward, persist, or otherwise intercept your transmitted data beyond what the third-party service receives in a direct browser request.
+________________________________________
+7. Acceptable Use and Prohibited Conduct
+You agree not to use the Service or Project for:
+• Any illegal, harmful, or fraudulent purpose;
+• Uploading or generating content that violates privacy, intellectual property, or export laws;
+• Impersonation of real persons, officials, or entities;
+• Harassment, stalking, or targeted hate speech;
+• Political or election manipulation without disclosure;
+• Processing regulated data (e.g., PHI under HIPAA, children’s data under COPPA, financial records);
+• Creating deceptive synthetic or “deepfake” media;
+• Training or redistributing AI model outputs that violate copyright or data-use agreements.
+Violation of these rules may result in access being blocked from the hosted demo.
+________________________________________
+8. Data Privacy and Security Notice
+This Service does not:
+• Require accounts;
+• Collect analytics or telemetry;
+• Store user-generated content on a remote server;
+• Share or sell any user information.
+All user data (documents, API keys, question sets) is confined to your local browser environment and can be deleted at any time via your browser settings.
+Because there is no server-side persistence, the operator is not a data controller under GDPR or similar regulations.
+________________________________________
+9. Intellectual Property and Attribution
+• You retain ownership of all content you upload and any questions you generate.
+• The Project’s source code, name, and visual design are protected by copyright and MIT license attribution.
+• You may modify and distribute the Project, provided that you preserve the original license notice and attribution in visible form.
+• You may not present derivative versions as the official [Project Name] release or imply endorsement by its authors.
+________________________________________
+10. No Warranty / Educational Disclaimer
+The Project and all related materials are provided “AS IS” without warranty of any kind, express or implied, including but not limited to:
+• Accuracy, completeness, or reliability of generated questions;
+• Suitability for educational, professional, or assessment use;
+• Error-free or uninterrupted operation.
+All outputs generated through AI features should be independently verified before use in any instructional or evaluative setting.
+________________________________________
+11. Limitation of Liability
+To the maximum extent permitted by applicable law:
+• The developers, contributors, and maintainers of this Project shall not be liable for any direct, indirect, incidental, consequential, or special damages arising from or in connection with your use or inability to use the Service or Project.
+• This includes, without limitation, loss of data, misuse of API keys, or inaccuracies in generated content.
+Your sole remedy for dissatisfaction with the Service is to stop using it.
+________________________________________
+12. Indemnification
+You agree to defend, indemnify, and hold harmless the developers, contributors, and affiliates of this Project from and against any claims, damages, liabilities, or expenses arising out of:
+• Your use, configuration, or distribution of the Project;
+• Any content or data you submit; or
+• Any breach of these Terms or applicable law.
+________________________________________
+13. Termination and Availability
+The maintainers may modify, suspend, or discontinue the hosted demo at any time without notice.
+This will not affect your right to continue using the open-source Project independently under the MIT License.
+You may stop using the Service or delete all locally stored data at any time.
+________________________________________
+14. Modifications to Terms or Project
+These Terms may be updated periodically.
+Changes take effect when posted to this site or repository.
+Your continued use after updates constitutes acceptance of the new Terms.
+The Project’s source code and dependencies may evolve, and functionality may change without prior notice.
+________________________________________
+15. Governing Law and Jurisdiction
+These Terms are governed by the laws of the State of Texas, United States, without regard to conflict-of-law principles.
+Any disputes arising under or in connection with these Terms shall be resolved exclusively in the courts located in Harris County, Texas, USA.
+_____________________________
+17. Effective Date and Version
+Effective Date: December 25, 2025
+Version: 1.1
