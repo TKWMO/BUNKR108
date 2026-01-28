@@ -9,12 +9,11 @@
             Note: this project uses inline scripts and some CDN imports. -->
         <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; style-src 'self' https: 'unsafe-inline'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' blob:; connect-src 'self' https:;" />
     <script>
-        // Optional Terms-of-Use enforcement for the hosted demo.
-        // This intentionally does NOT run for local/offline copies.
+        // Optional Terms-of-Use enforcement for web deployments.
+        // This intentionally does NOT run for local/offline copies opened via file://.
         (function(){
             try{
                 if(location.protocol !== 'https:' && location.protocol !== 'http:') return;
-                if(location.hostname !== 'tkwmo.github.io') return;
                 var s = document.createElement('script');
                 s.src = './assets/js/boot/tos.supplemental.js';
                 s.defer = true;
